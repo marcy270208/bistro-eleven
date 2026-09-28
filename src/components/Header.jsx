@@ -46,7 +46,7 @@ export default function Header({ user, toggleTheme, theme, setIsCartOpen, cart, 
         ) : (
           <>
             <Link to="/" onClick={() => handleScroll('menu')}>Menu</Link>
-            <Link to="/" onClick={() => handleScroll('story')}>Reviews</Link>
+            <Link to="/" onClick={() => handleScroll('reviews')}>Reviews</Link>
             {isClient && <Link to="/dashboard" id="client-orders-link">My orders</Link>}
             {isAdmin && <Link to="/dashboard" id="admin-link">Admin panel</Link>}
             
