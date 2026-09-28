@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      Checkout | Bistro Eleven
+    </title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          B
+        </span>
+        BISTRO
+        <b>
+          ELEVEN
+        </b>
+      </a>
+      <nav>
+        <a href="index.html#menu">
+          Menu
+        </a>
+        <a href="index.html">
+          Restaurant
+        </a>
+        <a class="login-link" id="logout" href="index.html">
+          Sign out ↗
+        </a>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Switch color theme">
+          ◐
+        </button>
+      </nav>
+    </header>
+    <main class="order-page">
+      <div class="order-intro">
+        <p class="eyebrow">
+          FROM OUR KITCHEN TO YOU
+        </p>
+        <h1>
+          Checkout
+        </h1>
+        <p class="muted">
+          Review your cart, choose how to receive your order, and confirm.
+        </p>
+        
+      </div>
+      <section class="order-card">
+        <form id="order-form">
+          <label for="customer-name">
+            Your name
+          </label>
+          <input id="customer-name" required placeholder="Your name">
+          <div id="checkout-items" class="checkout-items">
+          </div>
+          <label for="order-type">
+            How would you like your order?
+          </label>
+          <select id="order-type">
+            <option value="Delivery">
+              Delivery
+            </option>
+            <option value="Dine-in">
+              Dine-in
+            </option>
+          </select>
+          <div class="location-fields active" id="delivery-fields">
+            <label for="address">
+              Delivery address
+            </label>
+            <textarea id="address" rows="2" placeholder="Full delivery address" required></textarea>
+          </div>
+          <div class="location-fields" id="dinein-fields">
+            <label for="table-number">
+              Table number
+            </label>
+            <input id="table-number" type="text" placeholder="Table number (e.g. 12)">
+          </div>
+          <label for="payment-method">
+            Payment method
+          </label>
+          <select id="payment-method" required>
+            <option value="">
+              Choose a payment method
+            </option>
+            <option>
+              Cash
+            </option>
+            <option>
+              QRIS
+            </option>
+            <option>
+              Bank transfer
+            </option>
+          </select>
+          <label for="notes">
+            Order notes
+            <span class="optional">
+              (optional)
+            </span>
+          </label>
+          <textarea id="notes" rows="2" placeholder="For example: no chili"></textarea>
+          <div class="order-total">
+            <span>
+              Total
+            </span>
+            <b id="order-total">
+              Rp 0
+            </b>
+          </div>
+          <p id="order-message" class="success" aria-live="polite">
+          </p>
+          <button class="button button-red" type="submit">
+            Place order
+            <span>
+              ↗
+            </span>
+          </button>
+        </form>
+      </section>
+    </main>
+    <div class="order-overlay" id="processing-modal" hidden>
+      <section class="processing-card">
+        <div class="spinner">
+        </div>
+        <p class="eyebrow">
+          BISTRO ELEVEN
+        </p>
+        <h2>
+          Preparing your order
+        </h2>
+        <p>
+          Please wait while we put together your bill.
+        </p>
+        <div class="loading-dots">
+          <i>
+          </i>
+          <i>
+          </i>
+          <i>
+          </i>
+        </div>
+      </section>
+    </div>
+    <div class="order-overlay" id="bill-modal" hidden>
+      <section class="bill-card">
+        <button class="modal-close" id="bill-close" aria-label="Close bill">
+          ×
+        </button>
+        <p class="eyebrow">
+          BISTRO ELEVEN
+        </p>
+        <h2>
+          Your order bill
+        </h2>
+        <p class="bill-id" id="bill-id">
+        </p>
+        <div class="bill-details" id="bill-details">
+        </div>
+        <div class="bill-lines" id="bill-lines">
+        </div>
+        <div class="bill-total">
+          <span>
+            Order total
+          </span>
+          <b id="bill-total">
+          </b>
+        </div>
+        <p class="bill-thanks">
+          Thank you for dining with us!
+        </p>
+        <button class="button button-red" id="bill-done">
+          Back to restaurant
+          <span>
+            ↗
+          </span>
+        </button>
+      </section>
+    </div>
+
+    
+    <footer><div>&copy; 2026 Bistro Eleven. All rights reserved.</div></footer>
+
+
+    <script src="app.js">
+    </script>
+  </body>
+</html>
+
+
+

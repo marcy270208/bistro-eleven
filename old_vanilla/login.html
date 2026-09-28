@@ -1,0 +1,129 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      Sign in | Bistro Eleven
+    </title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body class="login-page">
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          B
+        </span>
+        BISTRO
+        <b>
+          ELEVEN
+        </b>
+      </a>
+      <nav>
+        <a href="index.html">
+          ← Back to restaurant
+        </a>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Switch color theme">
+          ◐
+        </button>
+      </nav>
+    </header>
+    <main class="login-layout">
+      <div class="login-photo">
+        <div>
+          <p class="eyebrow">
+            YOUR TABLE IS READY
+          </p>
+          <h1>
+            Good food
+            <br>
+            <em>
+              starts here.
+            </em>
+          </h1>
+        </div>
+      </div>
+      <section class="login-card">
+        <p class="eyebrow">
+          BISTRO ELEVEN
+        </p>
+        <div id="login-panel">
+          <h2>
+            Welcome back
+          </h2>
+          <p class="muted">
+            Sign in to continue to the restaurant.
+          </p>
+          <form id="login-form">
+            <label for="username">
+              Username
+            </label>
+            <input id="username" autocomplete="username" placeholder="Enter your username" required>
+            <label for="password">
+              Password
+            </label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+            <p id="login-error" class="error" aria-live="polite">
+            </p>
+            <button class="button button-red" type="submit">
+              Sign in
+              <span>
+                ↗
+              </span>
+            </button>
+          </form>
+          <p class="switch-auth">
+            New to Bistro Eleven?
+            <button id="show-signup" type="button">
+              Create an account
+            </button>
+          </p>
+        </div>
+        <div id="signup-panel" hidden>
+          <h2>
+            Create account
+          </h2>
+          <p class="muted">
+            Choose your own username and password.
+          </p>
+          <form id="signup-form">
+            <label for="signup-name">
+              Your name
+            </label>
+            <input id="signup-name" placeholder="Enter your name" required>
+            <label for="signup-username">
+              Username
+            </label>
+            <input id="signup-username" placeholder="Choose a username" required>
+            <label for="signup-password">
+              Password
+            </label>
+            <input id="signup-password" type="password" placeholder="Choose a password" required>
+            <p id="signup-error" class="error" aria-live="polite">
+            </p>
+            <button class="button button-red" type="submit">
+              Create account
+              <span>
+                ↗
+              </span>
+            </button>
+          </form>
+          <p class="switch-auth">
+            Already have an account?
+            <button id="show-login" type="button">
+              Sign in
+            </button>
+          </p>
+        </div>
+      </section>
+    </main>
+    
+    <footer><div>&copy; 2026 Bistro Eleven. All rights reserved.</div></footer>
+
+    <script src="app.js">
+    </script>
+  </body>
+</html>
+
+

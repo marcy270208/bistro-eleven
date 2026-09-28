@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      Admin panel | Bistro Eleven
+    </title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          B
+        </span>
+        BISTRO
+        <b>
+          ELEVEN
+        </b>
+        <span class="admin-badge" id="admin-badge">ADMIN</span>
+      </a>
+      <nav>
+        <a href="index.html#menu">
+          Restaurant
+        </a>
+        <a class="active" href="dashboard.html" id="dashboard-nav-link">
+          Admin panel
+        </a>
+        <a class="login-link" id="logout" href="index.html">
+          Sign out ↗
+        </a>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Switch color theme">
+          ◐
+        </button>
+      </nav>
+    </header>
+    <main class="dashboard-page">
+      <section class="dashboard-welcome">
+        <div>
+          <p class="eyebrow" id="role-label">
+            BISTRO ELEVEN
+          </p>
+          <h1 id="welcome-title">
+            Dashboard
+          </h1>
+          <p class="muted" id="welcome-copy">
+          </p>
+        </div>
+        <a class="button button-red" id="new-order-link" href="index.html#menu">
+          Browse menu
+          <span>
+            ↗
+          </span>
+        </a>
+      </section>
+      <div class="stats-grid" id="stats-grid">
+      </div>
+      <section class="panel" id="orders">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">
+              OVERVIEW
+            </p>
+            <h2 id="orders-title">
+              Customer Orders Queue
+            </h2>
+          </div>
+        </div>
+        <div class="filter-tabs" id="order-filters">
+          <button class="filter-tab active" data-filter="Active">Active</button>
+          <button class="filter-tab" data-filter="Completed">Completed</button>
+          <button class="filter-tab" data-filter="All">All Orders</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Type & Destination</th>
+                <th>Items & Qty</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="orders-list">
+            </tbody>
+          </table>
+        </div>
+        <p class="empty-state" id="empty-orders" hidden>
+          No orders yet. New orders will appear here.
+        </p>
+      </section>
+      <section class="panel admin-tools" id="add-new-item" hidden>
+        <h3>
+          Add New Item
+        </h3>
+        <p class="muted">
+          Add a dish to the restaurant menu catalog.
+        </p>
+        <form id="add-dish-form" class="clean-form">
+          <label>Item Name</label>
+          <input id="new-dish-name" placeholder="Item Name" required>
+          <label>Price (IDR)</label>
+          <input id="new-dish-price" type="number" min="1000" step="1000" placeholder="Price (IDR)" required>
+          <label>Dish Photo</label>
+          <input id="new-dish-photo" type="file" accept="image/png,image/jpeg,image/webp" required>
+          <img id="new-dish-preview" class="upload-preview" alt="Dish photo preview" hidden>
+          <label>Description</label>
+          <textarea id="new-dish-description" rows="2" placeholder="Brief taste and ingredients" required></textarea>
+          <p id="menu-error" class="error" aria-live="polite"></p>
+          <div class="form-actions">
+            <button class="button button-red save-catalog" type="submit">
+              Save to Catalog
+            </button>
+          </div>
+        </form>
+        <div id="admin-dish-list">
+        </div>
+      </section>
+
+      <section class="profile-modal" id="completed-modal" hidden>
+        <div class="profile-card">
+          <button class="modal-close" id="completed-close" aria-label="Close">
+            ×
+          </button>
+          <h2>Completed Transactions</h2>
+          <div id="completed-list" style="margin-top: 16px; max-height: 400px; overflow-y: auto;"></div>
+        </div>
+      </section>
+    </main>
+
+    
+    <footer><div>&copy; 2026 Bistro Eleven. All rights reserved.</div></footer>
+
+
+    <script src="app.js">
+    </script>
+  </body>
+</html>
+
+
