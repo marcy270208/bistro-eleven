@@ -223,7 +223,7 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
             </div>
           </form>
           <div id="admin-dish-list">
-            <h4>Current menu <button style={{ marginLeft: '16px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '4px' }} onClick={() => { localStorage.removeItem('adminDishes'); window.location.reload(); }}>Reset to Defaults</button></h4>
+            <h4>Current menu <button style={{ marginLeft: '16px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '4px' }} onClick={() => { localStorage.clear(); window.location.reload(); }}>Reset to Defaults</button></h4>
             {dishes.map(dish => (
               <div key={dish.id} className="admin-dish-row">
                 <span className="admin-dish-info">
