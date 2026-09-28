@@ -22,9 +22,9 @@ const Home = ({ dishes, addToCart, user }) => {
           <p className="hero-copy">
             Fresh ingredients, comforting favorites, and a table always ready for you at Bistro Eleven.
           </p>
-          <a className="button button-red" href="#menu">
+          <button className="button button-red" onClick={() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })}>
             Explore the menu <span>&darr;</span>
-          </a>
+          </button>
         </div>
         <div className="hero-note">FRESHLY MADE<br /><b>EVERY DAY</b></div>
       </section>
