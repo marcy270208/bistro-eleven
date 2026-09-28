@@ -48,7 +48,7 @@ Our system revolves around two main data structures stored in LocalStorage:
 
 ## Demo Accounts
 **Admin Account** (Username: `admin` | Password: `admin123`)
-**Client Account** (Username: `Margaret` | Password: `1234`)
+**Client Account** (Username: `user` | Password: `user123`)
 
 ## How to run it locally
 1. `npm install`
