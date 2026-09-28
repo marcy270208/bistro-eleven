@@ -13,32 +13,40 @@ export default function Header({ user, toggleTheme, theme, setIsCartOpen, cart, 
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
   };
 
+  const handleScroll = (id) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      else window.scrollTo(0,0);
+    }, 100);
+  };
+
   return (
     <header className="site-header">
-      <Link className="brand" to="/">
+      <Link className="brand" to="/" onClick={() => window.scrollTo(0,0)}>
         <span className="brand-mark">B</span>
         BISTRO <b>ELEVEN</b>
         {isAdmin && <span className="admin-badge">ADMIN</span>}
       </Link>
       <nav>
         {location.pathname === '/login' ? (
-          <Link to="/"><span>&larr;</span> Back to restaurant</Link>
+          <Link to="/" onClick={() => window.scrollTo(0,0)}><span>&larr;</span> Back to restaurant</Link>
         ) : location.pathname === '/dashboard' ? (
           <>
-            <Link to="/">Restaurant</Link>
+            <Link to="/" onClick={() => window.scrollTo(0,0)}>Restaurant</Link>
             <Link className="active" to="/dashboard">{isAdmin ? 'Admin panel' : 'My orders'}</Link>
             <button className="login-link" id="logout" onClick={logout}>Sign out <span>&rarr;</span></button>
           </>
         ) : location.pathname === '/checkout' ? (
           <>
-            <Link to="/">Menu</Link>
-            <Link to="/">Restaurant</Link>
+            <Link to="/" onClick={() => handleScroll('menu')}>Menu</Link>
+            <Link to="/" onClick={() => window.scrollTo(0,0)}>Restaurant</Link>
             <button className="login-link" id="logout" onClick={logout}>Sign out <span>&rarr;</span></button>
           </>
         ) : (
           <>
-            <Link to="/">Menu</Link>
-            <Link to="/">Reviews</Link>
+            <Link to="/" onClick={() => handleScroll('menu')}>Menu</Link>
+            <Link to="/" onClick={() => handleScroll('story')}>Reviews</Link>
             {isClient && <Link to="/dashboard" id="client-orders-link">My orders</Link>}
             {isAdmin && <Link to="/dashboard" id="admin-link">Admin panel</Link>}
             
