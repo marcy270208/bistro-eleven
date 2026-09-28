@@ -74,7 +74,7 @@ function App() {
 
       <CartDrawer isOpen={isCartOpen} setIsOpen={setIsCartOpen} cart={cart} dishes={dishes} updateCartQty={updateCartQty} user={user} />
       <BottomCartDock isVisible={isDockVisible} setIsVisible={setIsDockVisible} cartCount={cartCount} openCart={() => { setIsDockVisible(false); setIsCartOpen(true); }} />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
