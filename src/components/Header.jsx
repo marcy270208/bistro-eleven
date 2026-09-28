@@ -25,20 +25,20 @@ export default function Header({ user, toggleTheme, theme, setIsCartOpen, cart, 
           <Link to="/"><span>&larr;</span> Back to restaurant</Link>
         ) : location.pathname === '/dashboard' ? (
           <>
-            <Link to="/"></Link>
+            <Link to="/">Restaurant</Link>
             <Link className="active" to="/dashboard">{isAdmin ? 'Admin panel' : 'My orders'}</Link>
             <button className="login-link" id="logout" onClick={logout}>Sign out <span>&rarr;</span></button>
           </>
         ) : location.pathname === '/checkout' ? (
           <>
-            <Link to="/"></Link>
+            <Link to="/">Menu</Link>
             <Link to="/">Restaurant</Link>
             <button className="login-link" id="logout" onClick={logout}>Sign out <span>&rarr;</span></button>
           </>
         ) : (
           <>
-            <Link to="/"></Link>
-            <Link to="/"></Link>
+            <Link to="/">Menu</Link>
+            <Link to="/">Reviews</Link>
             {isClient && <Link to="/dashboard" id="client-orders-link">My orders</Link>}
             {isAdmin && <Link to="/dashboard" id="admin-link">Admin panel</Link>}
             
