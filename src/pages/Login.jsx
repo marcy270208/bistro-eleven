@@ -102,7 +102,7 @@ const Login = ({ users, setUsers, setUser, cart }) => {
             <div className="demo-box">
               <b>Demo Accounts:</b>
               <span>&bull; Admin: <code>admin</code> / <code>admin123</code></span>
-              <span>&bull; Client: <code>Margaret</code> / <code>1234</code></span>
+              <span>&bull; Client: <code>user</code> / <code>user123</code></span>
             </div>
           </div>
         ) : (
