@@ -217,7 +217,7 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
               onChange={e => setNewDish({...newDish, description: e.target.value})}
             ></textarea>
             <div className="form-actions">
-              <button className="button button-red save-catalog" type="submit">
+              <button className="button button-red save-catalog" type="submit" style={{ width: 'fit-content', padding: '0 24px', minHeight: '40px' }}>
                 Save to Catalog
               </button>
             </div>
