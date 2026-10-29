@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 
 # Secret files
+.env
+.env.*
+!.env.example
 bikin_sejarah.js
 *.txt
 
