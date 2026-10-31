@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
 
-const Checkout = ({ user, cart, setCart, dishes, orders, setOrders }) => {
+const Checkout = ({ user, token, cart, setCart, dishes, orders, setOrders }) => {
   const navigate = useNavigate();
   const isAdmin = user?.role === 'administrator';
 
   const [orderType, setOrderType] = useState('Delivery');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(user?.address || '');
   const [tableNumber, setTableNumber] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [notes, setNotes] = useState('');
   
   const [processing, setProcessing] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
   const [bill, setBill] = useState(null);
+  const [orderError, setOrderError] = useState('');
 
   if (!user) return <Navigate to="/login" />;
   if (isAdmin) return <Navigate to="/dashboard" />;
@@ -21,31 +24,36 @@ const Checkout = ({ user, cart, setCart, dishes, orders, setOrders }) => {
   const cartItems = cart.map(item => ({ ...item, ...getDish(item.id) }));
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!cart.length) return;
 
-    setProcessing(true);
-
-    setTimeout(() => {
-      const order = {
-        id: 'ORD-' + Date.now().toString().slice(-6),
-        username: user.username,
-        customer: user.name,
-        items: cartItems.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
-        total,
-        type: orderType,
-        location: orderType === 'Delivery' ? address : `Table ${tableNumber}`,
-        notes,
-        payment: paymentMethod,
-        status: 'New'
-      };
-
-      setOrders([order, ...orders]);
+    setProcessing(true); setLoadingStage(0); setOrderError('');
+    const startedAt = Date.now();
+    const stageTimers = [
+      window.setTimeout(() => setLoadingStage(1), 1200),
+      window.setTimeout(() => setLoadingStage(2), 2400),
+    ];
+    try {
+      const order = await api('/api/orders', {
+        method: 'POST', token,
+        body: JSON.stringify({
+          items: cartItems.map(item => ({ name: item.name, qty: item.qty })),
+          type: orderType,
+          location: orderType === 'Delivery' ? address : `Table ${tableNumber}`,
+          notes,
+          payment: paymentMethod,
+        }),
+      });
+      await new Promise(resolve => window.setTimeout(resolve, Math.max(0, 3600 - (Date.now() - startedAt))));
+      setOrders([order, ...orders.filter(existing => existing.id !== order.id)]);
       setCart([]);
-      setProcessing(false);
       setBill(order);
-    }, 1500);
+    } catch (error) { setOrderError(error.message); }
+    finally {
+      stageTimers.forEach(timer => window.clearTimeout(timer));
+      setProcessing(false);
+    }
   };
 
   const handleDone = () => {
@@ -113,16 +121,29 @@ const Checkout = ({ user, cart, setCart, dishes, orders, setOrders }) => {
           <button className="button button-red" type="submit" disabled={!cart.length || processing}>
             Place order <span>&rarr;</span>
           </button>
+          {orderError && <p className="error" role="alert">{orderError}</p>}
         </form>
       </section>
 
       {processing && (
         <div className="order-overlay" id="processing-modal">
-          <section className="processing-card">
-            <div className="spinner"></div>
+          <section className="processing-card" role="status" aria-live="polite">
+            <div className="kitchen-loader" aria-hidden="true">
+              <span className="steam steam-one"></span><span className="steam steam-two"></span><span className="steam steam-three"></span>
+              <div className="loader-plate"><div className="loader-meal"><i></i><i></i><i></i></div></div>
+              <span className="loader-orbit orbit-one"></span><span className="loader-orbit orbit-two"></span>
+            </div>
             <p className="eyebrow">BISTRO ELEVEN</p>
-            <h2>Preparing your order</h2>
-            <p>Please wait while we put together your bill.</p>
+            <h2>{['Order received', 'The kitchen is cooking', 'Your bill is almost ready'][loadingStage]}</h2>
+            <p>{['Sending your order to our kitchen.', 'Our chef is preparing your favorites.', 'Adding up your order details.'][loadingStage]}</p>
+            <div className="kitchen-steps" aria-label={`Checkout progress: step ${loadingStage + 1} of 3`}>
+              {['Order sent', 'Cooking', 'Bill ready'].map((step, index) => (
+                <span key={step} className={index <= loadingStage ? 'is-active' : ''}>
+                  <i>{index < loadingStage ? '✓' : index + 1}</i>{step}
+                </span>
+              ))}
+            </div>
+            <div className="kitchen-progress"><span style={{ width: `${22 + loadingStage * 31}%` }}></span></div>
             <div className="loading-dots"><i></i><i></i><i></i></div>
           </section>
         </div>

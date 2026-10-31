@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { api } from '../lib/api';
 
-const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
+const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
   const [showSalesModal, setShowSalesModal] = React.useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
   const [filter, setFilter] = useState('Active');
   const isAdmin = user?.role === 'administrator';
 
 
-  const [newDish, setNewDish] = useState({ name: '', price: '', description: '', photo: null, preview: null });
+  const [newDish, setNewDish] = useState({ name: '', price: '', description: '', ingredients: '', photo: null, preview: null });
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
@@ -28,10 +30,11 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
         name: newDish.name, 
         price: parseInt(newDish.price, 10), 
         description: newDish.description, 
+        ingredients: newDish.ingredients.split(/[,;\n]/).map(item => item.trim()).filter(Boolean),
         image: newDish.photo 
       }
     ]);
-    setNewDish({ name: '', price: '', description: '', photo: null, preview: null });
+    setNewDish({ name: '', price: '', description: '', ingredients: '', photo: null, preview: null });
     e.target.reset();
     alert('The dish and its photo were added to the catalog.');
   };
@@ -40,8 +43,20 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
     setDishes(dishes.filter(d => d.id !== id));
   };
 
-  const handleOrderStatus = (id, newStatus) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+  React.useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    const refreshOrders = () => api('/api/orders', { token }).then(data => { if (active) setOrders(data); }).catch(() => {});
+    refreshOrders();
+    const interval = window.setInterval(refreshOrders, 10000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [token, setOrders]);
+
+  const handleOrderStatus = async (id, newStatus) => {
+    try {
+      const updated = await api(`/api/orders/${encodeURIComponent(id)}/status`, { method: 'PATCH', token, body: JSON.stringify({ status: newStatus }) });
+      setOrders(current => current.map(order => order.id === id ? updated : order));
+    } catch (error) { alert(error.message); }
   };
 
   const visibleOrders = isAdmin 
@@ -51,7 +66,7 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
   let filteredOrders = visibleOrders;
   if (isAdmin) {
     if (filter === 'Active') {
-      filteredOrders = visibleOrders.filter(o => o.status === 'New' || o.status === 'Preparing');
+      filteredOrders = visibleOrders.filter(o => ['New', 'Preparing', 'On the way'].includes(o.status));
     } else if (filter === 'Completed') {
       filteredOrders = visibleOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
     }
@@ -59,7 +74,7 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
 
   const completedOrders = orders.filter(o => o.status === 'Completed');
   const revenue = completedOrders.reduce((sum, order) => sum + order.total, 0);
-  const preparingCount = orders.filter(o => o.status === 'Preparing' || o.status === 'New').length;
+  const preparingCount = orders.filter(o => ['Preparing', 'New', 'On the way'].includes(o.status)).length;
 
   if (!user) return <Navigate to="/login" />;
 
@@ -164,16 +179,15 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
                   </td>
                   <td>Rp {order.total.toLocaleString('id-ID')}</td>
                   <td>
-                    <span className={`badge-status bg-${order.status.toLowerCase()}`}>{order.status}</span>
+                    <span className={`badge-status bg-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>{order.status}</span>
                   </td>
                   <td>
-                    {isAdmin && order.status !== 'Completed' && order.status !== 'Cancelled' ? (
-                      <>
-                        <button className="button-action btn-complete" onClick={() => handleOrderStatus(order.id, 'Completed')}>Complete</button>
-                        <button className="button-action btn-cancel" onClick={() => handleOrderStatus(order.id, 'Cancelled')}>Cancel</button>
-                      </>
+                    {isAdmin ? (
+                      <select className="status-select" aria-label={`Update status for ${order.id}`} value={order.status} onChange={event => handleOrderStatus(order.id, event.target.value)}>
+                        {['New', 'Preparing', 'On the way', 'Completed', 'Cancelled'].map(status => <option key={status} value={status}>{status}</option>)}
+                      </select>
                     ) : (
-                      !isAdmin ? '-' : <span className="label-archived">Archived</span>
+                      <button className="button-action btn-complete" onClick={() => setSelectedBill(order)}>View bill</button>
                     )}
                   </td>
                 </tr>
@@ -182,6 +196,21 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
           </table>
         </div>
       </section>
+
+      {selectedBill && (
+        <div className="order-overlay" role="presentation" onClick={event => { if (event.target === event.currentTarget) setSelectedBill(null); }}>
+          <section className="bill-card" role="dialog" aria-modal="true" aria-labelledby="saved-bill-title">
+            <button className="modal-close" aria-label="Close bill" onClick={() => setSelectedBill(null)}>&times;</button>
+            <p className="eyebrow">BISTRO ELEVEN</p>
+            <h2 id="saved-bill-title">Order bill</h2>
+            <p className="bill-id">Order {selectedBill.id}</p>
+            <div className="bill-details"><p><b>{selectedBill.customer}</b></p><p>{selectedBill.type}: {selectedBill.location}</p><p>Payment: {selectedBill.payment}</p><p>Status: <b>{selectedBill.status}</b></p></div>
+            <div className="bill-lines">{selectedBill.items.map((item, index) => <div key={`${item.id}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>{item.qty}x {item.name}</span><span>Rp {(item.price * item.qty).toLocaleString('id-ID')}</span></div>)}</div>
+            <div className="bill-total"><span>Order total</span><b>Rp {selectedBill.total.toLocaleString('id-ID')}</b></div>
+            <button className="button button-red" onClick={() => setSelectedBill(null)}>Close</button>
+          </section>
+        </div>
+      )}
 
       {isAdmin && (
         <section className="panel admin-tools" id="add-new-item">
@@ -215,6 +244,14 @@ const Dashboard = ({ user, orders, setOrders, dishes, setDishes }) => {
               required 
               value={newDish.description} 
               onChange={e => setNewDish({...newDish, description: e.target.value})}
+            ></textarea>
+            <label>Ingredients</label>
+            <textarea
+              rows="2"
+              placeholder="Separate ingredients with commas"
+              required
+              value={newDish.ingredients}
+              onChange={e => setNewDish({...newDish, ingredients: e.target.value})}
             ></textarea>
             <div className="form-actions">
               <button className="button button-red save-catalog" type="submit" style={{ width: 'fit-content', padding: '0 24px', minHeight: '40px' }}>
