@@ -4,40 +4,61 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Checkout from './pages/Checkout';
+import AccountSettings from './pages/AccountSettings';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import Header from './components/Header';
 import CartDrawer from './components/CartDrawer';
 import BottomCartDock from './components/BottomCartDock';
+import MobileBottomNav from './components/MobileBottomNav';
 import { startingDishes } from './data/dishes';
-import { adminAccount, clientAccount } from './data/users';
+import { api } from './lib/api';
 
 function App() {
   const [theme, setTheme] = useState(localStorage.getItem('bistroTheme') || 'light');
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('bistroUser')) || null);
-  const [users, setUsers] = useState(() => JSON.parse(localStorage.getItem('bistroUsers')) || [adminAccount, clientAccount]);
-  const [dishes, setDishes] = useState(() => JSON.parse(localStorage.getItem('adminDishes')) || startingDishes);
-  const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('bistroCart')) || []);
-  const [orders, setOrders] = useState(() => JSON.parse(localStorage.getItem('adminOrders')) || []);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('bistroToken'));
+  const [authReady, setAuthReady] = useState(false);
+  const [dishes, setDishes] = useState(() => {
+    const savedDishes = JSON.parse(localStorage.getItem('adminDishes') || 'null');
+    if (!Array.isArray(savedDishes)) return startingDishes;
+    return savedDishes.map(dish => {
+      const originalDish = startingDishes.find(item => item.id === dish.id || item.name.toLowerCase() === dish.name?.toLowerCase());
+      return { ...originalDish, ...dish, ingredients: Array.isArray(dish.ingredients) && dish.ingredients.length ? dish.ingredients : (originalDish?.ingredients || []) };
+    });
+  });
+  const [cart, setCart] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isDockVisible, setIsDockVisible] = useState(false);
+  const [favoriteDishIds, setFavoriteDishIds] = useState([]);
+  const [isFavoritesOnly, setIsFavoritesOnly] = useState(false);
   const cartCount = cart ? cart.reduce((sum, item) => sum + item.qty, 0) : 0;
 
   useEffect(() => {
-    localStorage.setItem('bistroUsers', JSON.stringify(users));
-  }, [users]);
+    if (!token) { setUser(null); setAuthReady(true); return; }
+    api('/api/auth/me', { token })
+      .then(setUser)
+      .catch(() => { localStorage.removeItem('bistroToken'); setToken(null); setUser(null); })
+      .finally(() => setAuthReady(true));
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) { setOrders([]); return; }
+    api('/api/orders', { token }).then(setOrders).catch(() => setOrders([]));
+  }, [token]);
 
   useEffect(() => {
     localStorage.setItem('bistroTheme', theme);
     document.body.classList.toggle('dark-theme', theme === 'dark');
   }, [theme]);
 
-  useEffect(() => { localStorage.setItem('bistroUser', JSON.stringify(user)); }, [user]);
   useEffect(() => { localStorage.setItem('adminDishes', JSON.stringify(dishes)); }, [dishes]);
-  useEffect(() => { localStorage.setItem('bistroCart', JSON.stringify(cart)); }, [cart]);
-  useEffect(() => { localStorage.setItem('adminOrders', JSON.stringify(orders)); }, [orders]);
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const addToCart = (dishId) => {
+    if (!user) { window.location.hash = '/login'; return; }
     if (user?.role === 'administrator') return; // Admin can't order
     setCart(prev => {
       const existing = prev.find(item => item.id === dishId);
@@ -58,22 +79,36 @@ function App() {
   };
 
   const logout = () => {
+    localStorage.removeItem('bistroToken');
+    setToken(null);
     setUser(null);
+    setCart([]);
+    setIsCartOpen(false);
+  };
+
+  const handleAuth = ({ user: authenticatedUser, token: authToken }) => {
+    localStorage.setItem('bistroToken', authToken);
+    setToken(authToken);
+    setUser(authenticatedUser);
   };
 
   return (
     <HashRouter>
-      <Header user={user} toggleTheme={toggleTheme} theme={theme} setIsCartOpen={setIsCartOpen} cart={cart} logout={logout} />
+      {authReady && <Header user={user} toggleTheme={toggleTheme} theme={theme} setIsCartOpen={setIsCartOpen} cart={cart} logout={logout} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />}
       
       <Routes>
-        <Route path="/" element={<Home dishes={dishes} addToCart={addToCart} user={user} />} />
-        <Route path="/login" element={<Login setUser={setUser} users={users} setUsers={setUsers} user={user} cart={cart} />} />
-        <Route path="/dashboard" element={<Dashboard user={user} dishes={dishes} setDishes={setDishes} orders={orders} setOrders={setOrders} />} />
-        <Route path="/checkout" element={<Checkout user={user} cart={cart} setCart={setCart} dishes={dishes} orders={orders} setOrders={setOrders} />} />
+        <Route path="/" element={<Home dishes={dishes} addToCart={addToCart} user={user} token={token} favoriteDishIds={favoriteDishIds} setFavoriteDishIds={setFavoriteDishIds} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />} />
+        <Route path="/login" element={<Login onAuthenticated={handleAuth} user={user} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail token={token} setUser={setUser} />} />
+        <Route path="/dashboard" element={authReady ? <Dashboard user={user} token={token} dishes={dishes} setDishes={setDishes} orders={orders} setOrders={setOrders} /> : null} />
+        <Route path="/account" element={authReady ? <AccountSettings user={user} token={token} setUser={setUser} /> : null} />
+        <Route path="/checkout" element={authReady ? <Checkout user={user} token={token} cart={cart} setCart={setCart} dishes={dishes} orders={orders} setOrders={setOrders} /> : null} />
       </Routes>
 
-      <CartDrawer isOpen={isCartOpen} setIsOpen={setIsCartOpen} cart={cart} dishes={dishes} updateCartQty={updateCartQty} user={user} />
-      <BottomCartDock isVisible={isDockVisible} setIsVisible={setIsDockVisible} cartCount={cartCount} openCart={() => { setIsDockVisible(false); setIsCartOpen(true); }} />
+      {user?.role === 'client' && <CartDrawer isOpen={isCartOpen} setIsOpen={setIsCartOpen} cart={cart} dishes={dishes} updateCartQty={updateCartQty} user={user} />}
+      {user?.role === 'client' && <BottomCartDock isVisible={isDockVisible} setIsVisible={setIsDockVisible} cartCount={cartCount} openCart={() => { setIsDockVisible(false); setIsCartOpen(true); }} />}
+      {authReady && <MobileBottomNav user={user} cartCount={cartCount} isCartOpen={isCartOpen} openCart={() => user?.role === 'client' ? setIsCartOpen(true) : (window.location.hash = '/login')} />}
     </HashRouter>
   );
 }
