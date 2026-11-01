@@ -1,4 +1,7 @@
-const API_URL = (import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3001`).replace(/\/$/, '');
+const defaultApiUrl = import.meta.env.PROD
+  ? 'https://bistro-eleven-97kt.vercel.app'
+  : `${window.location.protocol}//${window.location.hostname}:3001`;
+const API_URL = (import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/$/, '');
 
 export async function api(path, { token, ...options } = {}) {
   const response = await fetch(`${API_URL}${path}`, {
