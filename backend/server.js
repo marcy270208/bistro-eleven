@@ -20,11 +20,15 @@ app.use('/api/dishes', dishRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/orders', orderRoutes);
 
-const port = process.env.PORT || 3001;
-app.listen(port, (err) => {
-  if (err) {
-    console.error('Cannot start server:', err.message);
-    process.exit(1);
-  }
-  console.log(`API running on http://localhost:${port}`);
-});
+if (!process.env.VERCEL) {
+  const port = process.env.PORT || 3001;
+  app.listen(port, (err) => {
+    if (err) {
+      console.error('Cannot start server:', err.message);
+      process.exit(1);
+    }
+    console.log(`API running on http://localhost:${port}`);
+  });
+}
+
+export default app;

@@ -17,3 +17,7 @@ services:
         value: admin123
       - key: APP_URL
         value: https://marcy270208.github.io/bistro-eleven
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
