@@ -1,9 +1,11 @@
-const DATA_URL_REGEX = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=\s]+)$/;
+const DATA_IMAGE_RE = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=\s]+)$/;
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const FREEIMAGE_API_KEY = process.env.FREEIMAGE_API_KEY || '6d207e02198a847aa98d0a2a901485a5';
 
 export function isHttpUrl(value) {
   if (typeof value !== 'string') return false;
   try {
-    const parsed = new URL(value.trim());
+    const parsed = new URL(value);
     return parsed.protocol === 'https:' || parsed.protocol === 'http:';
   } catch {
     return false;
@@ -11,78 +13,86 @@ export function isHttpUrl(value) {
 }
 
 export async function uploadImageToStorage(dataUrl) {
-  const match = typeof dataUrl === 'string' ? dataUrl.trim().match(DATA_URL_REGEX) : null;
+  const match = typeof dataUrl === 'string' ? DATA_IMAGE_RE.exec(dataUrl.trim()) : null;
   if (!match) {
-    const err = new Error('Choose a valid PNG, JPG, or WebP image.');
-    err.status = 400;
-    throw err;
+    throw new Error('Use a PNG, JPG, or WebP image.');
   }
 
-  const subtype = match[1] === 'jpg' ? 'jpeg' : match[1];
-  const ext = subtype === 'jpeg' ? 'jpg' : subtype;
-  const base64Data = match[2].replace(/\s+/g, '');
-  const buffer = Buffer.from(base64Data, 'base64');
+  const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+  const mime = `image/${match[1]}`;
+  const base64Payload = match[2].replace(/\s+/g, '');
+  const buffer = Buffer.from(base64Payload, 'base64');
 
-  if (buffer.byteLength > 3 * 1024 * 1024) {
-    const err = new Error('Image must be under 3 MB.');
-    err.status = 400;
-    throw err;
+  if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) {
+    throw new Error('Image must be 3 MB or smaller.');
   }
 
-  // 1. Optional ImgBB cloud storage if IMGBB_API_KEY is configured
-  if (process.env.IMGBB_API_KEY?.trim()) {
-    const form = new FormData();
-    form.append('image', base64Data);
-    const res = await fetch(
-      `https://api.imgbb.com/1/upload?key=${encodeURIComponent(process.env.IMGBB_API_KEY.trim())}`,
-      { method: 'POST', body: form }
-    );
-    const json = await res.json().catch(() => ({}));
-    if (res.ok && json?.data?.url) {
-      return json.data.url;
+  // Option 1: ImgBB if IMGBB_API_KEY is configured in .env
+  if (process.env.IMGBB_API_KEY) {
+    try {
+      const form = new FormData();
+      form.append('image', base64Payload);
+      const res = await fetch(
+        `https://api.imgbb.com/1/upload?key=${encodeURIComponent(process.env.IMGBB_API_KEY)}`,
+        { method: 'POST', body: form }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json?.data?.url) {
+        return json.data.url;
+      }
+    } catch {
+      // fall through to next provider
     }
   }
 
-  // 2. Default external file storage service (Catbox cloud object storage)
+  // Option 2: Freeimage.host / iili.io CDN (official image hosting API, works on Vercel/Render/local)
+  try {
+    const form = new FormData();
+    form.append('key', FREEIMAGE_API_KEY);
+    form.append('action', 'upload');
+    form.append('source', base64Payload);
+    form.append('format', 'json');
+    const res = await fetch('https://freeimage.host/api/1/upload', {
+      method: 'POST',
+      body: form,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (res.ok && isHttpUrl(json?.image?.url)) {
+      return json.image.url;
+    }
+  } catch {
+    // fall through to next provider
+  }
+
+  // Option 3: Catbox.moe external file storage fallback
   const form = new FormData();
   form.append('reqtype', 'fileupload');
-  form.append('fileToUpload', new Blob([buffer], { type: `image/${subtype}` }), `upload-${Date.now()}.${ext}`);
+  form.append('fileToUpload', new Blob([buffer], { type: mime }), `bistro-${Date.now()}.${ext}`);
 
   const response = await fetch('https://catbox.moe/user/api.php', {
     method: 'POST',
     body: form,
+    headers: {
+      'User-Agent': 'BistroEleven/1.0',
+    },
   });
 
   const text = (await response.text()).trim();
   if (!response.ok || !isHttpUrl(text)) {
-    const err = new Error('Could not upload image to external storage service.');
-    err.status = 502;
-    throw err;
+    throw new Error('Could not upload image to external storage service.');
   }
-
   return text;
 }
 
 export async function resolveImageUrl(input) {
-  if (input === null || input === undefined || input === '') return null;
-  if (typeof input !== 'string') {
-    const err = new Error('Invalid image format.');
-    err.status = 400;
-    throw err;
-  }
-  const trimmed = input.trim();
+  if (!input) return null;
+  const trimmed = String(input).trim();
+  if (!trimmed) return null;
   if (isHttpUrl(trimmed)) {
     if (trimmed.length > 2048) {
-      const err = new Error('Image URL is too long.');
-      err.status = 400;
-      throw err;
+      throw new Error('Image URL is too long.');
     }
     return trimmed;
   }
-  if (trimmed.startsWith('data:image/')) {
-    return uploadImageToStorage(trimmed);
-  }
-  const err = new Error('Choose a PNG, JPG, or WebP photo under 3 MB, or provide an https:// image URL.');
-  err.status = 400;
-  throw err;
+  return uploadImageToStorage(trimmed);
 }
