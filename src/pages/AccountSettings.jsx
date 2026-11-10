@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { uploadImageFile } from '../lib/imageUpload';
 import PasswordField from '../components/PasswordField';
 
 export default function AccountSettings({ user, token, setUser }) {
@@ -14,20 +15,26 @@ export default function AccountSettings({ user, token, setUser }) {
   const [emailMessage, setEmailMessage] = useState('');
   const [emailError, setEmailError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   if (!user) return <Navigate to="/login" replace />;
 
-  const handlePhoto = event => {
+  const handlePhoto = async event => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) {
-      setProfileError('Pilih foto PNG, JPG, atau WebP dengan ukuran maksimal 3 MB.');
+    setProfileError('');
+    setProfileMessage('');
+    setUploadingPhoto(true);
+    try {
+      const uploadedUrl = await uploadImageFile(file, token);
+      setProfile(current => ({ ...current, photo: uploadedUrl }));
+      setProfileMessage('Foto berhasil diunggah ke cloud storage. Klik Save profile untuk menyimpan ke akun.');
+    } catch (error) {
+      setProfileError(error.message || 'Gagal mengunggah foto profil.');
       event.target.value = '';
-      return;
+    } finally {
+      setUploadingPhoto(false);
     }
-    const reader = new FileReader();
-    reader.onload = () => setProfile(current => ({ ...current, photo: reader.result }));
-    reader.readAsDataURL(file);
   };
 
   const saveProfile = async event => {
@@ -67,7 +74,9 @@ export default function AccountSettings({ user, token, setUser }) {
             {profile.photo ? <img src={profile.photo} alt="Profile preview" /> : <span>{(profile.name || 'G').charAt(0).toUpperCase()}</span>}
           </div>
           <label htmlFor="profile-photo">Profile photo</label>
-          <input id="profile-photo" type="file" accept="image/png,image/jpeg,image/webp" onChange={handlePhoto} />
+          <input id="profile-photo" type="file" accept="image/png,image/jpeg,image/webp" onChange={handlePhoto} disabled={uploadingPhoto || busy} />
+          {uploadingPhoto && <small className="muted">Mengompres & mengunggah foto ke cloud storage...</small>}
+          {profile.photo && profile.photo.startsWith('http') && <small className="verified-label" style={{ wordBreak: 'break-all' }}>Cloud URL: {profile.photo}</small>}
           <label htmlFor="profile-name">Name</label>
           <input id="profile-name" required maxLength={80} value={profile.name} onChange={event => setProfile({ ...profile, name: event.target.value })} />
           <label htmlFor="profile-username">Username</label>
@@ -85,7 +94,7 @@ export default function AccountSettings({ user, token, setUser }) {
           <textarea id="profile-address" rows="3" maxLength={500} value={profile.address} onChange={event => setProfile({ ...profile, address: event.target.value })} />
           {profileError && <p className="error" role="alert">{profileError}</p>}
           {profileMessage && <p className="success-message" role="status">{profileMessage}</p>}
-          <button className="button button-red" disabled={busy}>Save profile</button>
+          <button className="button button-red" disabled={busy || uploadingPhoto}>Save profile</button>
         </form>
       </section>
       <section className="account-card">

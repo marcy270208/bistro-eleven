@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { uploadImageFile } from '../lib/imageUpload';
 
 const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
   const [showSalesModal, setShowSalesModal] = React.useState(false);
@@ -10,37 +11,61 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
 
 
   const [newDish, setNewDish] = useState({ name: '', price: '', description: '', ingredients: '', photo: null, preview: null });
+  const [uploadingDishPhoto, setUploadingDishPhoto] = useState(false);
+  const [savingDish, setSavingDish] = useState(false);
 
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setNewDish({ ...newDish, photo: ev.target.result, preview: ev.target.result });
-      reader.readAsDataURL(file);
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDishPhoto(true);
+    try {
+      const uploadedUrl = await uploadImageFile(file, token);
+      setNewDish(current => ({ ...current, photo: uploadedUrl, preview: uploadedUrl }));
+    } catch (error) {
+      alert(error.message || 'Gagal mengunggah foto menu.');
+      e.target.value = '';
+    } finally {
+      setUploadingDishPhoto(false);
     }
   };
 
-  const handleAddDish = (e) => {
+  const handleAddDish = async (e) => {
     e.preventDefault();
-    const id = newDish.name.toLowerCase().replace(/[\s&]+/g, '-');
-    setDishes([
-      ...dishes, 
-      { 
-        id, 
-        name: newDish.name, 
-        price: parseInt(newDish.price, 10), 
-        description: newDish.description, 
-        ingredients: newDish.ingredients.split(/[,;\n]/).map(item => item.trim()).filter(Boolean),
-        image: newDish.photo 
-      }
-    ]);
-    setNewDish({ name: '', price: '', description: '', ingredients: '', photo: null, preview: null });
-    e.target.reset();
-    alert('The dish and its photo were added to the catalog.');
+    if (!newDish.photo) {
+      alert('Tunggu hingga foto selesai diunggah terlebih dahulu.');
+      return;
+    }
+    setSavingDish(true);
+    try {
+      const createdDish = await api('/api/dishes', {
+        method: 'POST',
+        token,
+        body: JSON.stringify({
+          name: newDish.name,
+          price: parseInt(newDish.price, 10),
+          description: newDish.description,
+          ingredients: newDish.ingredients.split(/[,;\n]/).map(item => item.trim()).filter(Boolean),
+          image: newDish.photo,
+        }),
+      });
+      setDishes(current => [...current, createdDish]);
+      setNewDish({ name: '', price: '', description: '', ingredients: '', photo: null, preview: null });
+      e.target.reset();
+      alert('The dish and its cloud photo URL were saved to the database.');
+    } catch (error) {
+      alert(error.message || 'Could not add dish.');
+    } finally {
+      setSavingDish(false);
+    }
   };
 
-  const handleDeleteDish = (id) => {
-    setDishes(dishes.filter(d => d.id !== id));
+  const handleDeleteDish = async (id) => {
+    try {
+      await api(`/api/dishes/${encodeURIComponent(id)}`, { method: 'DELETE', token });
+      setDishes(current => current.filter(d => d.id !== id));
+    } catch (error) {
+      alert(error.message || 'Could not delete dish.');
+    }
   };
 
   React.useEffect(() => {
@@ -235,7 +260,9 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
               onChange={e => setNewDish({...newDish, price: e.target.value})} 
             />
             <label>Dish Photo</label>
-            <input type="file" accept="image/png,image/jpeg,image/webp" required onChange={handlePhotoUpload} />
+            <input type="file" accept="image/png,image/jpeg,image/webp" required onChange={handlePhotoUpload} disabled={uploadingDishPhoto || savingDish} />
+            {uploadingDishPhoto && <small className="muted">Mengompres & mengunggah foto menu ke cloud storage...</small>}
+            {newDish.photo && newDish.photo.startsWith('http') && <small className="verified-label" style={{ wordBreak: 'break-all' }}>Cloud URL: {newDish.photo}</small>}
             {newDish.preview && <img className="upload-preview" src={newDish.preview} alt="Dish photo preview" style={{ display: 'block' }} />}
             <label>Description</label>
             <textarea 
@@ -254,8 +281,8 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
               onChange={e => setNewDish({...newDish, ingredients: e.target.value})}
             ></textarea>
             <div className="form-actions">
-              <button className="button button-red save-catalog" type="submit" style={{ width: 'fit-content', padding: '0 24px', minHeight: '40px' }}>
-                Save to Catalog
+              <button className="button button-red save-catalog" type="submit" disabled={uploadingDishPhoto || savingDish} style={{ width: 'fit-content', padding: '0 24px', minHeight: '40px' }}>
+                {savingDish ? 'Saving...' : 'Save to Catalog'}
               </button>
             </div>
           </form>

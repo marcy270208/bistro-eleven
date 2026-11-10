@@ -19,14 +19,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('bistroToken'));
   const [authReady, setAuthReady] = useState(false);
-  const [dishes, setDishes] = useState(() => {
-    const savedDishes = JSON.parse(localStorage.getItem('adminDishes') || 'null');
-    if (!Array.isArray(savedDishes)) return startingDishes;
-    return savedDishes.map(dish => {
-      const originalDish = startingDishes.find(item => item.id === dish.id || item.name.toLowerCase() === dish.name?.toLowerCase());
-      return { ...originalDish, ...dish, ingredients: Array.isArray(dish.ingredients) && dish.ingredients.length ? dish.ingredients : (originalDish?.ingredients || []) };
-    });
-  });
+  const [dishes, setDishes] = useState(startingDishes);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -34,6 +27,27 @@ function App() {
   const [favoriteDishIds, setFavoriteDishIds] = useState([]);
   const [isFavoritesOnly, setIsFavoritesOnly] = useState(false);
   const cartCount = cart ? cart.reduce((sum, item) => sum + item.qty, 0) : 0;
+
+  useEffect(() => {
+    localStorage.removeItem('adminDishes');
+    api('/api/dishes')
+      .then(serverDishes => {
+        if (!Array.isArray(serverDishes) || serverDishes.length === 0) return;
+        setDishes(serverDishes.map(dish => {
+          const originalDish = startingDishes.find(
+            item => String(item.id) === String(dish.id) || item.name.toLowerCase() === dish.name?.toLowerCase()
+          );
+          return {
+            ...originalDish,
+            ...dish,
+            ingredients: Array.isArray(dish.ingredients) && dish.ingredients.length
+              ? dish.ingredients
+              : (originalDish?.ingredients || []),
+          };
+        }));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!token) { setUser(null); setAuthReady(true); return; }
@@ -52,8 +66,6 @@ function App() {
     localStorage.setItem('bistroTheme', theme);
     document.body.classList.toggle('dark-theme', theme === 'dark');
   }, [theme]);
-
-  useEffect(() => { localStorage.setItem('adminDishes', JSON.stringify(dishes)); }, [dishes]);
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
