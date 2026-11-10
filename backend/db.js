@@ -1,4 +1,7 @@
 import bcrypt from 'bcryptjs';
+import { resolveImageUrl } from './storage.js';
+
+const STATIC_IMAGE_BASE = 'https://marcy270208.github.io/bistro-eleven/images';
 
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (
@@ -21,6 +24,7 @@ const SCHEMA_STATEMENTS = [
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
+    ingredients TEXT,
     price INTEGER NOT NULL,
     image TEXT
   )`,
@@ -53,14 +57,62 @@ const SCHEMA_STATEMENTS = [
 ];
 
 const INITIAL_DISHES = [
-  ['Classic Club Sandwich', 'Toasted bread, tender chicken, fried egg, and fresh greens.', 20000, './images/dish1.png'],
-  ['Spaghetti Bolognese', 'Pasta with rich meat sauce and parmesan.', 30000, './images/dish2.jpg'],
-  ['Crispy Fried Chicken', 'Crispy chicken seasoned with Bistro Eleven herbs.', 35000, './images/dish3.jpg'],
-  ['Classic Pepperoni Pizza', 'Pepperoni, mozzarella, and a rich tomato sauce.', 40000, './images/dish4.png'],
-  ['Chocolate Lava Cake', 'Warm chocolate cake with a gooey molten center, dusted with powdered sugar.', 25000, './images/lava_cake.png'],
-  ['Berry & Butter Pancakes', 'Fluffy pancakes topped with fresh berries, butter, and maple syrup.', 28000, './images/pancakes.png'],
-  ['Fresh Orange Juice', 'Freshly squeezed orange juice served with mint and ice.', 15000, './images/orange_juice.png'],
-  ['Strawberry Smoothie', 'Creamy strawberry smoothie blended with fresh mint.', 18000, './images/strawberry_smoothie.png'],
+  [
+    'Classic Club Sandwich',
+    'Toasted bread, tender chicken, fried egg, and fresh greens.',
+    JSON.stringify(['Toasted bread', 'Chicken', 'Fried egg', 'Lettuce', 'Tomato', 'Mayonnaise']),
+    20000,
+    `${STATIC_IMAGE_BASE}/dish1.png`,
+  ],
+  [
+    'Spaghetti Bolognese',
+    'Pasta with rich meat sauce and parmesan.',
+    JSON.stringify(['Spaghetti', 'Ground beef', 'Tomato', 'Onion', 'Garlic', 'Parmesan']),
+    30000,
+    `${STATIC_IMAGE_BASE}/dish2.jpg`,
+  ],
+  [
+    'Crispy Fried Chicken',
+    'Crispy chicken seasoned with Bistro Eleven herbs.',
+    JSON.stringify(['Chicken', 'Wheat flour', 'Bistro Eleven herbs and spices', 'Cooking oil']),
+    35000,
+    `${STATIC_IMAGE_BASE}/dish3.jpg`,
+  ],
+  [
+    'Classic Pepperoni Pizza',
+    'Pepperoni, mozzarella, and a rich tomato sauce.',
+    JSON.stringify(['Pizza dough', 'Pepperoni', 'Mozzarella', 'Tomato sauce']),
+    40000,
+    `${STATIC_IMAGE_BASE}/dish4.png`,
+  ],
+  [
+    'Chocolate Lava Cake',
+    'Warm chocolate cake with a gooey molten center, dusted with powdered sugar.',
+    JSON.stringify(['Dark chocolate', 'Butter', 'Eggs', 'Sugar', 'Wheat flour', 'Powdered sugar']),
+    25000,
+    `${STATIC_IMAGE_BASE}/lava_cake.png`,
+  ],
+  [
+    'Berry & Butter Pancakes',
+    'Fluffy pancakes topped with fresh berries, butter, and maple syrup.',
+    JSON.stringify(['Wheat flour', 'Milk', 'Eggs', 'Butter', 'Fresh berries', 'Maple syrup']),
+    28000,
+    `${STATIC_IMAGE_BASE}/pancakes.png`,
+  ],
+  [
+    'Fresh Orange Juice',
+    'Freshly squeezed orange juice served with mint and ice.',
+    JSON.stringify(['Fresh oranges', 'Mint', 'Ice']),
+    15000,
+    `${STATIC_IMAGE_BASE}/orange_juice.png`,
+  ],
+  [
+    'Strawberry Smoothie',
+    'Creamy strawberry smoothie blended with fresh mint.',
+    JSON.stringify(['Strawberries', 'Milk', 'Yogurt', 'Fresh mint']),
+    18000,
+    `${STATIC_IMAGE_BASE}/strawberry_smoothie.png`,
+  ],
 ];
 
 let adapterPromise = null;
@@ -150,6 +202,12 @@ async function initAdapter() {
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email COLLATE NOCASE) WHERE email IS NOT NULL AND email != ''"
   );
 
+  const dishCols = await adapter.all('PRAGMA table_info(dishes)');
+  const dishColumns = new Set(dishCols.map((column) => column.name));
+  if (!dishColumns.has('ingredients')) {
+    await adapter.execRaw('ALTER TABLE dishes ADD COLUMN ingredients TEXT');
+  }
+
   const isProduction = process.env.NODE_ENV === 'production';
   const adminUsername = process.env.ADMIN_USERNAME || (isProduction ? '' : 'admin');
   const adminPassword = process.env.ADMIN_PASSWORD || (isProduction ? '' : 'admin123');
@@ -169,7 +227,32 @@ async function initAdapter() {
   const existingDish = await adapter.get('SELECT 1 FROM dishes LIMIT 1');
   if (!existingDish) {
     for (const d of INITIAL_DISHES) {
-      await adapter.run('INSERT INTO dishes (name, description, price, image) VALUES (?, ?, ?, ?)', d);
+      await adapter.run(
+        'INSERT INTO dishes (name, description, ingredients, price, image) VALUES (?, ?, ?, ?, ?)',
+        d
+      );
+    }
+  } else {
+    // Ensure seeded dishes have full https:// image URLs and default ingredients
+    for (const [name, , ingredientsJson, , imageUrl] of INITIAL_DISHES) {
+      await adapter.run(
+        `UPDATE dishes
+         SET image = CASE WHEN image LIKE './images/%' THEN ? ELSE image END,
+             ingredients = COALESCE(ingredients, ?)
+         WHERE name = ?`,
+        [imageUrl, ingredientsJson, name]
+      );
+    }
+  }
+
+  // Migrate any legacy base64 user photos in the database to external storage URLs
+  const base64Users = await adapter.all("SELECT id, photo FROM users WHERE photo LIKE 'data:image/%'");
+  for (const u of base64Users) {
+    try {
+      const url = await resolveImageUrl(u.photo);
+      await adapter.run('UPDATE users SET photo = ? WHERE id = ?', [url, u.id]);
+    } catch {
+      // keep existing if external upload fails temporarily
     }
   }
 

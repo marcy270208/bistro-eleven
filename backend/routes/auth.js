@@ -5,6 +5,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import db from '../db.js';
 import { auth } from '../middleware/auth.js';
 import { sendAccountEmail } from '../email.js';
+import { resolveImageUrl } from '../storage.js';
 
 const router = Router();
 
@@ -82,11 +83,13 @@ router.put('/profile', auth, async (req, res) => {
   if (!validEmail(email)) return res.status(400).json({ error: 'Enter a valid email address' });
   if (typeof phone !== 'string' || phone.length > 30 || typeof address !== 'string' || address.length > 500)
     return res.status(400).json({ error: 'Phone or address is too long' });
-  if (
-    photo !== null &&
-    (typeof photo !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(photo) || photo.length > 4_500_000)
-  )
-    return res.status(400).json({ error: 'Choose a PNG, JPG, or WebP photo under 3 MB' });
+
+  let photoUrl = null;
+  try {
+    photoUrl = await resolveImageUrl(photo);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
 
   const normalizedEmail = email.trim().toLowerCase();
   const duplicate = await db.get(
@@ -105,7 +108,7 @@ router.put('/profile', auth, async (req, res) => {
       name.trim(),
       phone.trim(),
       address.trim(),
-      photo,
+      photoUrl,
       req.user.id
     );
   } else {
@@ -114,7 +117,7 @@ router.put('/profile', auth, async (req, res) => {
       name.trim(),
       phone.trim(),
       address.trim(),
-      photo,
+      photoUrl,
       req.user.id
     );
   }
