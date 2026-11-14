@@ -54,6 +54,18 @@ const SCHEMA_STATEMENTS = [
     text TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS chef_inquiries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id),
+    customer_name TEXT NOT NULL,
+    username TEXT,
+    question TEXT NOT NULL,
+    ai_context TEXT,
+    chef_reply TEXT,
+    status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Answered')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    replied_at TEXT
+  )`,
 ];
 
 const INITIAL_DISHES = [
