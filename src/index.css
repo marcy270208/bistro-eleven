@@ -2929,3 +2929,344 @@ input, select, textarea, .status-select {
         flex-direction: column;
     }
 }
+
+
+/* ==========================================================================
+   Unified Modern UI Design System (Customer & Admin Views)
+   ========================================================================== */
+
+/* 1. Sticky Glass Header & Pill Navigation Controls */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--paper) 88%, transparent) !important;
+    border-bottom: 1px solid var(--line);
+    transition: background 0.2s ease;
+}
+.dark-theme .site-header {
+    background: color-mix(in srgb, #141311 88%, transparent) !important;
+}
+.site-header nav {
+    gap: 18px;
+}
+.site-header nav a {
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 999px;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+.site-header nav a:hover {
+    background: color-mix(in srgb, var(--red) 10%, transparent);
+    color: var(--red) !important;
+}
+.site-header nav a.active {
+    border-radius: 999px !important;
+    padding: 8px 16px !important;
+    box-shadow: 0 6px 16px rgba(207, 115, 62, 0.25);
+}
+
+/* Header Cart, Sign-In, Profile, Language & Theme Pills */
+.cart-open,
+.login-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line) !important;
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border-radius: 999px !important;
+    padding: 8px 16px !important;
+    font: 600 12.5px var(--sans) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    cursor: pointer;
+}
+.cart-open:hover,
+.login-link:hover {
+    border-color: var(--red) !important;
+    color: var(--red) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(207, 115, 62, 0.14);
+}
+.cart-open span {
+    margin-left: 2px !important;
+    min-width: 22px;
+    height: 22px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0 6px !important;
+    border-radius: 999px !important;
+    font-size: 11px;
+    font-weight: 700;
+}
+.signed-in-tools {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 12px 4px 5px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+.logout-button {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+.logout-button:hover {
+    background: color-mix(in srgb, var(--red) 12%, transparent);
+    color: var(--red);
+}
+.theme-toggle {
+    width: 36px !important;
+    height: 36px !important;
+    border: 1px solid var(--line) !important;
+    background: var(--surface) !important;
+    border-radius: 999px !important;
+    display: inline-grid !important;
+    place-items: center;
+    font-size: 16px !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.theme-toggle:hover,
+.lang-toggle:hover {
+    border-color: var(--red) !important;
+    transform: translateY(-1px);
+}
+
+/* 2. Modern Buttons Across All Pages */
+.button,
+.button-red,
+.dish-bottom .dish-actions button,
+.bottom-cart-view,
+.button-action {
+    border-radius: 12px !important;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
+}
+.button-red,
+.hero .button-red,
+.dish-bottom .dish-add-button {
+    box-shadow: 0 8px 20px rgba(207, 115, 62, 0.26);
+}
+.button-red:hover,
+.hero .button-red:hover,
+.dish-bottom .dish-add-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(207, 115, 62, 0.36);
+}
+
+/* 3. Modern Rounded Inputs, Selects & Search Bar */
+.menu-tools input,
+.login-card input,
+.order-card input,
+.order-card select,
+.order-card textarea,
+.account-form input:not([type="file"]),
+.account-form textarea,
+.review-form-panel select,
+.review-form-panel textarea,
+.clean-form input:not([type="file"]),
+.clean-form textarea,
+.clean-form select,
+.status-select {
+    border-radius: 12px !important;
+    border: 1px solid var(--line) !important;
+    padding: 11px 14px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.menu-tools input {
+    width: 240px;
+    padding-left: 16px !important;
+    border-radius: 999px !important;
+}
+.menu-tools input:focus,
+.login-card input:focus,
+.order-card input:focus,
+.order-card select:focus,
+.order-card textarea:focus,
+.account-form input:focus,
+.account-form textarea:focus,
+.review-form-panel select:focus,
+.review-form-panel textarea:focus,
+.status-select:focus {
+    outline: none !important;
+    border-color: var(--red) !important;
+    box-shadow: 0 0 0 3px rgba(207, 115, 62, 0.18) !important;
+}
+
+/* 4. Elevated Cards & Containers (Customer & Admin) */
+.dish-card,
+.review-card,
+.review-form-panel,
+.stat-card,
+.panel,
+.order-card,
+.account-card,
+.bill-card,
+.processing-card,
+.dish-detail-modal,
+.profile-card {
+    border-radius: 18px !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: 0 12px 32px rgba(42, 26, 15, 0.06) !important;
+}
+.dark-theme .dish-card,
+.dark-theme .review-card,
+.dark-theme .review-form-panel,
+.dark-theme .stat-card,
+.dark-theme .panel,
+.dark-theme .order-card,
+.dark-theme .account-card,
+.dark-theme .bill-card,
+.dark-theme .processing-card,
+.dark-theme .dish-detail-modal {
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42) !important;
+}
+.dish-card img {
+    border-bottom: 1px solid var(--line);
+}
+.dish-detail-modal > img {
+    border-radius: 14px;
+    object-fit: contain !important;
+    background: #fff;
+    padding: 12px;
+}
+.dish-ingredients li {
+    border-radius: 999px !important;
+    padding: 6px 12px !important;
+}
+
+/* 5. Login & Signup Split Card */
+.login-layout {
+    max-width: 1060px !important;
+    margin: 42px auto 80px !important;
+    min-height: 600px;
+    border-radius: 24px !important;
+    overflow: hidden;
+    border: 1px solid var(--line) !important;
+    box-shadow: 0 20px 50px rgba(42, 26, 15, 0.1) !important;
+}
+.login-card {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+@media (max-width: 800px) {
+    .login-layout {
+        margin: 20px 5% 60px !important;
+        border-radius: 18px !important;
+    }
+}
+
+/* 6. Admin & Customer Dashboard Modernization */
+.stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)) !important;
+    gap: 18px !important;
+    margin-bottom: 28px !important;
+}
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--red) !important;
+    box-shadow: 0 16px 36px rgba(207, 115, 62, 0.15) !important;
+}
+.panel {
+    margin-bottom: 28px;
+}
+.filter-tabs {
+    margin: 16px 0 20px !important;
+    flex-wrap: wrap;
+}
+.filter-tab {
+    border-radius: 999px !important;
+    padding: 8px 16px !important;
+    font-size: 12px !important;
+    transition: all 0.18s ease;
+}
+.filter-tab:hover {
+    border-color: var(--red) !important;
+    color: var(--red) !important;
+}
+.status-select {
+    border-radius: 999px !important;
+    padding: 7px 12px !important;
+    font-weight: 600;
+    cursor: pointer;
+}
+.badge-status {
+    padding: 5px 11px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+    letter-spacing: 0.3px;
+}
+.admin-dish-row {
+    align-items: center;
+    padding: 12px 14px !important;
+    margin-bottom: 8px;
+    border: 1px solid var(--line) !important;
+    border-radius: 12px;
+    background: var(--paper);
+}
+.admin-dish-info img {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid var(--line);
+}
+.remove-dish {
+    border: 1px solid color-mix(in srgb, var(--red) 35%, transparent) !important;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font: 600 11.5px var(--sans);
+    transition: background 0.18s ease, color 0.18s ease;
+}
+.remove-dish:hover {
+    background: var(--red);
+    color: #fff;
+}
+.upload-preview {
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    padding: 6px;
+}
+
+/* 7. Cart Drawer, Checkout & Bottom Dock */
+.cart-drawer {
+    border-top-left-radius: 22px;
+    border-bottom-left-radius: 22px;
+    border-left: 1px solid var(--line);
+    box-shadow: -16px 0 48px rgba(0, 0, 0, 0.18);
+}
+.qty-buttons button {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    font-weight: 700;
+}
+.checkout-items {
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    padding: 14px 16px !important;
+}
+.bottom-cart-dock {
+    border-radius: 18px !important;
+}
+
+/* 8. Chef Inquiry Cards in Admin Portal */
+.chef-inquiry-card {
+    border-radius: 14px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+}
+.chef-inquiry-question,
+.chef-inquiry-ai-note,
+.chef-inquiry-answered-box,
+.chef-reply-row textarea {
+    border-radius: 10px !important;
+}
