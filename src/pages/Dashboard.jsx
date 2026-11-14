@@ -13,6 +13,10 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
   const [newDish, setNewDish] = useState({ name: '', price: '', description: '', ingredients: '', photo: null, preview: null });
   const [uploadingDishPhoto, setUploadingDishPhoto] = useState(false);
   const [savingDish, setSavingDish] = useState(false);
+  const [chefInquiries, setChefInquiries] = useState([]);
+  const [inquiryFilter, setInquiryFilter] = useState('Pending');
+  const [chefDrafts, setChefDrafts] = useState({});
+  const [replyingId, setReplyingId] = useState(null);
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -72,10 +76,42 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
     if (!token) return undefined;
     let active = true;
     const refreshOrders = () => api('/api/orders', { token }).then(data => { if (active) setOrders(data); }).catch(() => {});
+    const refreshInquiries = () => {
+      if (!isAdmin) return;
+      api('/api/ai/inquiries', { token })
+        .then(data => { if (active && Array.isArray(data)) setChefInquiries(data); })
+        .catch(() => {});
+    };
     refreshOrders();
-    const interval = window.setInterval(refreshOrders, 10000);
+    refreshInquiries();
+    const interval = window.setInterval(() => {
+      refreshOrders();
+      refreshInquiries();
+    }, 8000);
     return () => { active = false; window.clearInterval(interval); };
-  }, [token, setOrders]);
+  }, [token, isAdmin, setOrders]);
+
+  const handleChefReply = async (inquiryId) => {
+    const draft = (chefDrafts[inquiryId] || '').trim();
+    if (!draft) {
+      alert('Tulis balasan Chef terlebih dahulu.');
+      return;
+    }
+    setReplyingId(inquiryId);
+    try {
+      const updated = await api(`/api/ai/inquiries/${encodeURIComponent(inquiryId)}/reply`, {
+        method: 'POST',
+        token,
+        body: JSON.stringify({ reply: draft }),
+      });
+      setChefInquiries(current => current.map(item => item.id === inquiryId ? updated : item));
+      setChefDrafts(current => ({ ...current, [inquiryId]: '' }));
+    } catch (error) {
+      alert(error.message || 'Gagal mengirim balasan Chef.');
+    } finally {
+      setReplyingId(null);
+    }
+  };
 
   const handleOrderStatus = async (id, newStatus) => {
     try {
@@ -100,6 +136,12 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
   const completedOrders = orders.filter(o => o.status === 'Completed');
   const revenue = completedOrders.reduce((sum, order) => sum + order.total, 0);
   const preparingCount = orders.filter(o => ['Preparing', 'New', 'On the way'].includes(o.status)).length;
+  const pendingInquiriesCount = chefInquiries.filter(i => i.status === 'Pending').length;
+  const filteredInquiries = chefInquiries.filter(i => {
+    if (inquiryFilter === 'Pending') return i.status === 'Pending';
+    if (inquiryFilter === 'Answered') return i.status === 'Answered';
+    return true;
+  });
 
   if (!user) return <Navigate to="/login" />;
 
@@ -136,6 +178,11 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
             <span style={{ fontSize: '11px', marginBottom: '8px', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>Incoming Orders</span>
             <b style={{ fontSize: '24px', margin: '0 0 8px', display: 'block' }}>{preparingCount} Active</b>
             <span style={{ fontSize: '12px', color: 'var(--red)', display: 'block' }}>↓ Click to manage queue</span>
+          </div>
+          <div className="stat-card pointer" style={{ padding: '24px', textAlign: 'center' }} onClick={() => document.getElementById('chef-inquiries').scrollIntoView({ behavior: 'smooth' })}>
+            <span style={{ fontSize: '11px', marginBottom: '8px', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>Chef Live Desk (AI)</span>
+            <b style={{ fontSize: '24px', margin: '0 0 8px', display: 'block' }}>{pendingInquiriesCount} Pending</b>
+            <span style={{ fontSize: '12px', color: 'var(--red)', display: 'block' }}>↓ Click to reply as Chef</span>
           </div>
           <div className="stat-card pointer" style={{ padding: '24px', textAlign: 'center' }} onClick={() => document.getElementById('add-new-item').scrollIntoView({ behavior: 'smooth' })}>
             <span style={{ fontSize: '11px', marginBottom: '8px', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>Add New Item</span>
@@ -235,6 +282,130 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
             <button className="button button-red" onClick={() => setSelectedBill(null)}>Close</button>
           </section>
         </div>
+      )}
+
+      {isAdmin && (
+        <section className="panel" id="chef-inquiries">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">KITCHEN DESK &bull; AI CONCIERGE ESCALATIONS</p>
+              <h2>👨‍🍳 Pertanyaan Pelanggan untuk Head Chef</h2>
+              <p className="muted" style={{ marginTop: '4px' }}>
+                Pertanyaan pelanggan yang tidak dapat dijawab AI dan dialihkan langsung ke dapur untuk dijawab oleh Chef.
+              </p>
+            </div>
+          </div>
+
+          <div className="filter-tabs">
+            <button
+              type="button"
+              className={`filter-tab ${inquiryFilter === 'Pending' ? 'active' : ''}`}
+              onClick={() => setInquiryFilter('Pending')}
+            >
+              Belum Dijawab ({pendingInquiriesCount})
+            </button>
+            <button
+              type="button"
+              className={`filter-tab ${inquiryFilter === 'Answered' ? 'active' : ''}`}
+              onClick={() => setInquiryFilter('Answered')}
+            >
+              Sudah Dijawab ({chefInquiries.length - pendingInquiriesCount})
+            </button>
+            <button
+              type="button"
+              className={`filter-tab ${inquiryFilter === 'All' ? 'active' : ''}`}
+              onClick={() => setInquiryFilter('All')}
+            >
+              Semua ({chefInquiries.length})
+            </button>
+          </div>
+
+          <div className="chef-inquiries-list">
+            {filteredInquiries.length === 0 && (
+              <p className="empty-state" style={{ textAlign: 'center', padding: '28px 0' }}>
+                Belum ada pertanyaan pelanggan di kategori ini.
+              </p>
+            )}
+
+            {filteredInquiries.map(inquiry => (
+              <div key={inquiry.id} className="chef-inquiry-card">
+                <div className="chef-inquiry-top">
+                  <div>
+                    <b className="chef-inquiry-customer">{inquiry.customerName}</b>
+                    {inquiry.username && <span className="chef-inquiry-username"> (@{inquiry.username})</span>}
+                    <span className="chef-inquiry-time"> &bull; #{inquiry.id}</span>
+                  </div>
+                  <span className={`badge-status ${inquiry.status === 'Answered' ? 'bg-completed' : 'bg-preparing'}`}>
+                    {inquiry.status === 'Answered' ? 'Dijawab Chef' : 'Menunggu Chef'}
+                  </span>
+                </div>
+
+                <div className="chef-inquiry-question">
+                  <small className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>PERTANYAAN PELANGGAN</small>
+                  <p>&ldquo;{inquiry.question}&rdquo;</p>
+                </div>
+
+                {inquiry.aiContext && (
+                  <div className="chef-inquiry-ai-note">
+                    <small>🤖 <b>Respon Awal AI:</b> {inquiry.aiContext}</small>
+                  </div>
+                )}
+
+                {inquiry.status === 'Answered' && inquiry.chefReply && (
+                  <div className="chef-inquiry-answered-box">
+                    <small className="eyebrow" style={{ display: 'block', marginBottom: '4px', color: 'var(--red)' }}>
+                      👨‍🍳 JAWABAN HEAD CHEF
+                    </small>
+                    <p>{inquiry.chefReply}</p>
+                  </div>
+                )}
+
+                <div className="chef-reply-form">
+                  <div className="chef-quick-templates">
+                    {[
+                      'Bisa kami buatkan sesuai request (tanpa bahan tersebut), silakan tulis di Order Notes saat checkout.',
+                      'Semua bahan masakan di dapur Bistro Eleven 100% Halal dan disiapkan segar setiap hari.',
+                      'Untuk keamanan alergi, kami bisa menyiapkan dengan peralatan masak terpisah — beri catatan saat memesan.',
+                    ].map(tpl => (
+                      <button
+                        key={tpl}
+                        type="button"
+                        className="chef-template-chip"
+                        onClick={() => setChefDrafts(current => ({ ...current, [inquiry.id]: tpl }))}
+                      >
+                        + {tpl.slice(0, 44)}...
+                      </button>
+                    ))}
+                  </div>
+                  <div className="chef-reply-row">
+                    <textarea
+                      rows="2"
+                      placeholder={
+                        inquiry.status === 'Answered'
+                          ? 'Perbarui jawaban Head Chef untuk pelanggan ini...'
+                          : 'Tulis jawaban langsung dari Head Chef untuk pelanggan ini...'
+                      }
+                      value={chefDrafts[inquiry.id] || ''}
+                      onChange={e => setChefDrafts(current => ({ ...current, [inquiry.id]: e.target.value }))}
+                    />
+                    <button
+                      type="button"
+                      className="button button-red"
+                      disabled={replyingId === inquiry.id}
+                      onClick={() => handleChefReply(inquiry.id)}
+                    >
+                      {replyingId === inquiry.id
+                        ? 'Mengirim...'
+                        : inquiry.status === 'Answered'
+                          ? 'Perbarui Jawaban'
+                          : '👨‍🍳 Kirim Jawaban Chef'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {isAdmin && (

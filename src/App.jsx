@@ -11,6 +11,7 @@ import Header from './components/Header';
 import CartDrawer from './components/CartDrawer';
 import BottomCartDock from './components/BottomCartDock';
 import MobileBottomNav from './components/MobileBottomNav';
+import AiConcierge from './components/AiConcierge';
 import { startingDishes } from './data/dishes';
 import { api } from './lib/api';
 
@@ -120,6 +121,7 @@ function App() {
 
       {user?.role === 'client' && <CartDrawer isOpen={isCartOpen} setIsOpen={setIsCartOpen} cart={cart} dishes={dishes} updateCartQty={updateCartQty} user={user} />}
       {user?.role === 'client' && <BottomCartDock isVisible={isDockVisible} setIsVisible={setIsDockVisible} cartCount={cartCount} openCart={() => { setIsDockVisible(false); setIsCartOpen(true); }} />}
+      {authReady && <AiConcierge user={user} token={token} addToCart={addToCart} />}
       {authReady && <MobileBottomNav user={user} cartCount={cartCount} isCartOpen={isCartOpen} openCart={() => user?.role === 'client' ? setIsCartOpen(true) : (window.location.hash = '/login')} />}
     </HashRouter>
   );
