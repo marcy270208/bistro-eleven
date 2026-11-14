@@ -64,37 +64,43 @@ async function loadRestaurantContext() {
   return { dishes, reviews, topOrdered, avgRating };
 }
 
-function buildSmartReply(message, context) {
+function buildSmartReply(message, context, lang = 'en') {
+  const isId = lang === 'id';
   const q = message.toLowerCase();
   const { dishes, reviews, topOrdered, avgRating } = context;
 
-  // Detect questions that should be escalated or offered to the Head Chef
   const chefKeywords = [
     'chef',
     'koki',
     'custom',
+    'modify',
+    'modification',
     'modifikasi',
+    'special request',
     'request khusus',
-    'alergi parah',
+    'allergy',
+    'allergies',
+    'alergi',
     'cross contamination',
     'kontaminasi',
+    'secret recipe',
     'resep rahasia',
-    'cara masak',
-    'katering',
     'catering',
+    'katering',
+    'birthday',
     'ulang tahun',
+    'reservation',
     'reservasi',
     'booking',
     'gluten free',
     'vegan',
     'bebas gluten',
+    'ask chef',
     'tanya chef',
-    'hubungi chef',
-    'admin',
+    'speak to chef',
   ];
   const explicitChefRequest = chefKeywords.some((kw) => q.includes(kw));
 
-  // Match specific dishes mentioned in the message
   const matchedDishes = dishes.filter((d) => {
     const words = d.name.toLowerCase().split(/\s+/);
     return (
@@ -108,14 +114,16 @@ function buildSmartReply(message, context) {
     q.includes('review') ||
     q.includes('ulasan') ||
     q.includes('rating') ||
+    q.includes('testimonial') ||
     q.includes('testimoni') ||
-    q.includes('komentar') ||
+    q.includes('feedback') ||
     q.includes('pendapat')
   ) {
     if (!reviews.length) {
       return {
-        reply:
-          'Saat ini belum ada ulasan pelanggan yang tercatat di database Bistro Eleven. Namun menu favorit yang paling sering dipesan adalah **Classic Club Sandwich** (Rp 20.000) dan **Spaghetti Bolognese** (Rp 30.000). Apakah kamu ingin rekomendasi menu atau bertanya langsung ke Chef kami?',
+        reply: isId
+          ? 'Saat ini belum ada ulasan pelanggan di database Bistro Eleven. Namun menu favorit yang paling sering dipesan adalah **Classic Club Sandwich** (Rp 20.000) dan **Spaghetti Bolognese** (Rp 30.000). Apakah kamu ingin rekomendasi menu atau bertanya langsung ke Chef kami?'
+          : 'There are no guest reviews recorded in the Bistro Eleven database yet. However, our most ordered house favorites are the **Classic Club Sandwich** (Rp 20,000) and **Spaghetti Bolognese** (Rp 30,000). Would you like dish recommendations or to ask our Head Chef directly?',
         recommendedDishes: dishes.slice(0, 2),
         needsChef: false,
       };
@@ -128,11 +136,9 @@ function buildSmartReply(message, context) {
       .join('\n');
 
     return {
-      reply:
-        `📊 **Ringkasan Review Pelanggan Bistro Eleven**\n` +
-        `Dari **${reviews.length} ulasan terbaru** di server kami, rata-rata rating restoran adalah **⭐ ${avgRating} / 5.0** (${star5} ulasan bintang 5, ${star4} ulasan bintang 4).\n\n` +
-        `**Sorotan Ulasan Terbaru:**\n${recentHighlights}\n\n` +
-        `Pelanggan paling banyak memuji rasa makanan yang fresh, porsi yang mengenyangkan, dan harga yang ramah di kantong.`,
+      reply: isId
+        ? `📊 **Ringkasan Review Pelanggan Bistro Eleven**\nDari **${reviews.length} ulasan terbaru** di server kami, rata-rata rating restoran adalah **⭐ ${avgRating} / 5.0** (${star5} bintang 5, ${star4} bintang 4).\n\n**Sorotan Ulasan Terbaru:**\n${recentHighlights}\n\nPelanggan paling banyak memuji kesegaran bahan, porsi yang mengenyangkan, dan harga yang terjangkau.`
+        : `📊 **Bistro Eleven Guest Review Summary**\nBased on **${reviews.length} recent reviews** in our server database, our average rating is **⭐ ${avgRating} / 5.0** (${star5} five-star reviews, ${star4} four-star reviews).\n\n**Recent Guest Highlights:**\n${recentHighlights}\n\nGuests consistently praise our fresh ingredients, generous portions, and friendly prices.`,
       recommendedDishes: topOrdered.length
         ? dishes.filter((d) => topOrdered.some((t) => t.id === d.id))
         : dishes.slice(0, 2),
@@ -143,9 +149,9 @@ function buildSmartReply(message, context) {
   // 2. Explicit escalation / custom kitchen question
   if (explicitChefRequest) {
     return {
-      reply:
-        `Pertanyaan kamu menyangkut **permintaan khusus dapur / konsultasi langsung dengan Head Chef** (*"${message}"*).\n\n` +
-        `Sebagai asisten AI menu, saya tidak bisa memutuskan perubahan resep khusus, jaminan alergi medis ketat, atau pesanan custom di luar katalog standar. Silakan klik tombol **"👨‍🍳 Alihkan & Kirim Pertanyaan ke Chef"** di bawah agar Head Chef kami bisa langsung membalas pesanmu dari dapur!`,
+      reply: isId
+        ? `Pertanyaanmu menyangkut **permintaan khusus dapur / konsultasi langsung dengan Head Chef** (*"${message}"*).\n\nSebagai asisten AI, saya tidak dapat mengonfirmasi modifikasi resep khusus, jaminan medis alergi silang, atau pesanan di luar menu standar. Silakan klik tombol **"👨‍🍳 Alihkan & Tanya ke Chef"** di bawah agar Head Chef kami langsung membalas pesanmu dari dapur!`
+        : `Your question involves a **custom kitchen request or direct consultation with our Head Chef** (*"${message}"*).\n\nAs an AI menu assistant, I cannot confirm off-menu recipe modifications, strict medical cross-contamination guarantees, or custom event orders on my own. Please click **"👨‍🍳 Escalate & Ask Head Chef"** below so our Head Chef can reply directly from the kitchen!`,
       recommendedDishes: matchedDishes.slice(0, 2),
       needsChef: true,
     };
@@ -157,15 +163,16 @@ function buildSmartReply(message, context) {
       .map(
         (d) =>
           `🍽️ **${d.name}** — **Rp ${Number(d.price).toLocaleString('id-ID')}**\n` +
-          `• Deskripsi: ${d.description}\n` +
-          `• Komposisi/Bahan: ${d.ingredients.length ? d.ingredients.join(', ') : 'Bahan segar pilihan Bistro Eleven'}`
+          (isId
+            ? `• Deskripsi: ${d.description}\n• Bahan/Komposisi: ${d.ingredients.length ? d.ingredients.join(', ') : 'Bahan segar pilihan Bistro Eleven'}`
+            : `• Description: ${d.description}\n• Ingredients: ${d.ingredients.length ? d.ingredients.join(', ') : 'Fresh Bistro Eleven kitchen ingredients'}`)
       )
       .join('\n\n');
 
     return {
-      reply:
-        `Berikut informasi lengkap untuk menu yang kamu tanyakan:\n\n${details}\n\n` +
-        `Jika kamu punya permintaan modifikasi bahan (misalnya tanpa bahan tertentu) yang perlu dikonfirmasi dapur, kamu juga bisa meneruskan pertanyaan ini langsung ke Chef kami.`,
+      reply: isId
+        ? `Berikut informasi lengkap untuk menu yang kamu tanyakan:\n\n${details}\n\nJika kamu ingin memodifikasi bahan tertentu, kamu juga bisa meneruskan pertanyaan ini ke Head Chef kami.`
+        : `Here are the full details for the dish you asked about:\n\n${details}\n\nIf you need a custom ingredient modification confirmed by the kitchen, you can escalate this question to our Head Chef below.`,
       recommendedDishes: matchedDishes.slice(0, 3),
       needsChef: false,
     };
@@ -173,9 +180,13 @@ function buildSmartReply(message, context) {
 
   // 4. Budget / cheap / affordable filter
   if (
+    q.includes('cheap') ||
+    q.includes('budget') ||
+    q.includes('affordable') ||
+    q.includes('under') ||
+    q.includes('price') ||
     q.includes('murah') ||
     q.includes('hemat') ||
-    q.includes('budget') ||
     q.includes('harga') ||
     q.includes('dibawah') ||
     q.includes('di bawah') ||
@@ -187,7 +198,9 @@ function buildSmartReply(message, context) {
       .map((d) => `• **${d.name}** (Rp ${Number(d.price).toLocaleString('id-ID')}) — ${d.description}`)
       .join('\n');
     return {
-      reply: `💸 **Rekomendasi Menu Hemat di Bistro Eleven:**\n\n${list}\n\nSemuanya dibuat fresh saat dipesan!`,
+      reply: isId
+        ? `💸 **Rekomendasi Menu Hemat di Bistro Eleven:**\n\n${list}\n\nSemuanya disiapkan segar saat dipesan!`
+        : `💸 **Best Budget-Friendly Picks at Bistro Eleven:**\n\n${list}\n\nEvery dish is freshly prepared to order!`,
       recommendedDishes: affordable,
       needsChef: false,
     };
@@ -195,11 +208,14 @@ function buildSmartReply(message, context) {
 
   // 5. Sweet / dessert / cake / pancake
   if (
-    q.includes('manis') ||
+    q.includes('sweet') ||
     q.includes('dessert') ||
+    q.includes('cake') ||
+    q.includes('pancake') ||
+    q.includes('chocolate') ||
+    q.includes('manis') ||
     q.includes('penutup') ||
     q.includes('coklat') ||
-    q.includes('chocolate') ||
     q.includes('kue')
   ) {
     const sweets = dishes.filter((d) =>
@@ -209,21 +225,26 @@ function buildSmartReply(message, context) {
       .map((d) => `• **${d.name}** (Rp ${Number(d.price).toLocaleString('id-ID')}) — ${d.description}`)
       .join('\n');
     return {
-      reply: `🍰 **Rekomendasi Menu Manis & Dessert Favorit:**\n\n${list}`,
+      reply: isId
+        ? `🍰 **Rekomendasi Dessert & Menu Manis Favorit:**\n\n${list}`
+        : `🍰 **Recommended Sweet Treats & Desserts:**\n\n${list}`,
       recommendedDishes: sweets.slice(0, 3),
       needsChef: false,
     };
   }
 
-  // 6. Drinks / segar / minuman
+  // 6. Drinks / beverages
   if (
+    q.includes('drink') ||
+    q.includes('beverage') ||
+    q.includes('refreshing') ||
+    q.includes('thirsty') ||
+    q.includes('juice') ||
+    q.includes('smoothie') ||
     q.includes('minum') ||
     q.includes('segar') ||
-    q.includes('drink') ||
     q.includes('haus') ||
-    q.includes('juice') ||
-    q.includes('jus') ||
-    q.includes('smoothie')
+    q.includes('jus')
   ) {
     const drinks = dishes.filter((d) =>
       /juice|smoothie|orange|strawberry|drink/i.test(`${d.name} ${d.description}`)
@@ -232,21 +253,33 @@ function buildSmartReply(message, context) {
       .map((d) => `• **${d.name}** (Rp ${Number(d.price).toLocaleString('id-ID')}) — ${d.description}`)
       .join('\n');
     return {
-      reply: `🥤 **Pilihan Minuman Segar Bistro Eleven:**\n\n${list}`,
+      reply: isId
+        ? `🥤 **Pilihan Minuman Segar Bistro Eleven:**\n\n${list}`
+        : `🥤 **Refreshing Drinks at Bistro Eleven:**\n\n${list}`,
       recommendedDishes: drinks.slice(0, 3),
       needsChef: false,
     };
   }
 
-  // 7. Heavy / savory / kenyang / makan siang / makan malam / rekomendasi umum
+  // 7. General recommendation / popular / savory / mains
   if (
+    q.includes('recommend') ||
+    q.includes('popular') ||
+    q.includes('favorite') ||
+    q.includes('favourite') ||
+    q.includes('best') ||
+    q.includes('order') ||
+    q.includes('menu') ||
+    q.includes('hungry') ||
+    q.includes('lunch') ||
+    q.includes('dinner') ||
+    q.includes('hello') ||
+    q.includes('hi') ||
     q.includes('rekomendasi') ||
-    q.includes('pesan apa') ||
+    q.includes('pesan') ||
     q.includes('kenyang') ||
     q.includes('makan') ||
-    q.includes('menu') ||
     q.includes('favorit') ||
-    q.includes('best seller') ||
     q.includes('terlaris') ||
     q.includes('halo') ||
     q.includes('hai')
@@ -262,10 +295,9 @@ function buildSmartReply(message, context) {
       )
       .join('\n');
     return {
-      reply:
-        `Halo! 👋 Berikut **Rekomendasi Menu Andalan Bistro Eleven** yang paling disukai pelanggan${avgRating ? ` (Rating Restoran ⭐ ${avgRating}/5)` : ''}:\n\n` +
-        `${list}\n\n` +
-        `Kamu juga bisa tanya tentang **komposisi bahan**, **ringkasan review pelanggan**, atau **alihkan ke Chef** jika ada request masakan khusus!`,
+      reply: isId
+        ? `Halo! 👋 Berikut **Rekomendasi Menu Andalan Bistro Eleven** yang paling disukai pelanggan${avgRating ? ` (Rating Restoran ⭐ ${avgRating}/5)` : ''}:\n\n${list}\n\nKamu juga bisa tanya tentang **komposisi bahan**, **ringkasan review pelanggan**, atau **alihkan ke Chef** jika ada request masakan khusus!`
+        : `Hello! 👋 Here are **Bistro Eleven's Signature House Favorites** loved by our guests${avgRating ? ` (Restaurant Rating ⭐ ${avgRating}/5)` : ''}:\n\n${list}\n\nYou can also ask about **dish ingredients**, a **summary of guest reviews**, or **escalate to our Head Chef** for special kitchen requests!`,
       recommendedDishes: picks,
       needsChef: false,
     };
@@ -273,15 +305,15 @@ function buildSmartReply(message, context) {
 
   // 8. Unknown / out-of-scope question -> offer Chef escalation!
   return {
-    reply:
-      `Saya belum menemukan jawaban pasti untuk pertanyaan *"${message}"* dari data katalog menu standar kami.\n\n` +
-      `Untuk pertanyaan khusus seperti ini, kamu bisa langsung **mengalihkan pertanyaan ke Head Chef** kami dengan menekan tombol **"👨‍🍳 Alihkan & Tanya ke Chef"** di bawah agar dijawab langsung oleh dapur Bistro Eleven!`,
+    reply: isId
+      ? `Saya belum menemukan jawaban pasti untuk pertanyaan *"${message}"* dari data katalog menu standar kami.\n\nUntuk pertanyaan khusus seperti ini, silakan tekan tombol **"👨‍🍳 Alihkan & Tanya ke Chef"** di bawah agar dijawab langsung oleh Head Chef Bistro Eleven!`
+      : `I couldn't find an exact answer for *"${message}"* in our standard menu catalog.\n\nFor specific kitchen questions like this, please click **"👨‍🍳 Escalate & Ask Head Chef"** below so our Head Chef at Bistro Eleven can answer you directly!`,
     recommendedDishes: dishes.slice(0, 2),
     needsChef: true,
   };
 }
 
-async function callExternalAiModel(message, history, context) {
+async function callExternalAiModel(message, history, context, lang = 'en') {
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   const openaiKey = process.env.OPENAI_API_KEY?.trim();
 
@@ -300,8 +332,10 @@ async function callExternalAiModel(message, history, context) {
         .join('\n')
     : 'No reviews yet.';
 
+  const targetLanguage = lang === 'id' ? 'Indonesian (Bahasa Indonesia)' : 'English';
+
   const systemPrompt = `You are the Bistro Eleven AI Menu & Review Concierge.
-Answer concisely in Indonesian (unless the user writes in English).
+Always respond in ${targetLanguage}.
 Use ONLY the real Bistro Eleven menu and customer reviews below:
 
 MENU:
@@ -313,7 +347,7 @@ ${reviewText}
 Rules:
 1. Recommend specific dishes with their exact price in IDR (Rp).
 2. Summarize customer reviews accurately when asked.
-3. If the user asks for off-menu customizations, strict medical allergy guarantees, catering, reservations, secret kitchen techniques, or anything you cannot verify from the menu/reviews, tell them politely that you cannot confirm it yourself and recommend escalating to the Head Chef, and end your message with the exact tag [NEEDS_CHEF].`;
+3. If the user asks for off-menu customizations, strict medical allergy guarantees, catering, reservations, secret kitchen techniques, or anything you cannot verify from the menu/reviews, politely recommend escalating to the Head Chef and end your message with the exact tag [NEEDS_CHEF].`;
 
   if (geminiKey) {
     const controller = new AbortController();
@@ -356,7 +390,7 @@ Rules:
         }
       }
     } catch {
-      // fall through to smart fallback
+      // fall through
     } finally {
       clearTimeout(timer);
     }
@@ -410,13 +444,19 @@ Rules:
 router.post('/chat', async (req, res) => {
   try {
     const message = req.body?.message?.trim();
+    const lang = req.body?.lang === 'id' ? 'id' : 'en';
     if (!message || message.length > 600) {
-      return res.status(400).json({ error: 'Tulis pertanyaan antara 1 hingga 600 karakter.' });
+      return res.status(400).json({
+        error:
+          lang === 'id'
+            ? 'Tulis pertanyaan antara 1 hingga 600 karakter.'
+            : 'Please enter a question between 1 and 600 characters.',
+      });
     }
 
     const context = await loadRestaurantContext();
-    const llmResult = await callExternalAiModel(message, req.body?.history, context);
-    const result = llmResult || buildSmartReply(message, context);
+    const llmResult = await callExternalAiModel(message, req.body?.history, context, lang);
+    const result = llmResult || buildSmartReply(message, context, lang);
 
     res.json({
       reply: result.reply,
@@ -425,7 +465,9 @@ router.post('/chat', async (req, res) => {
       originalQuestion: message,
     });
   } catch {
-    res.status(500).json({ error: 'Asisten AI sedang sibuk, silakan coba lagi atau tanya ke Chef.' });
+    res.status(500).json({
+      error: 'AI Assistant is temporarily busy. Please try again or escalate to our Chef.',
+    });
   }
 });
 
@@ -437,10 +479,10 @@ router.post('/escalate', async (req, res) => {
     const guestName = req.body?.customerName?.trim();
 
     if (!question || question.length > 600) {
-      return res.status(400).json({ error: 'Pertanyaan untuk Chef wajib diisi (maks 600 karakter).' });
+      return res.status(400).json({ error: 'Question for the Chef is required (max 600 chars).' });
     }
 
-    let customerName = guestName || 'Pelanggan Bistro';
+    let customerName = guestName || 'Bistro Guest';
     let username = null;
     let userId = null;
 
@@ -473,7 +515,7 @@ router.post('/escalate', async (req, res) => {
 
     res.status(201).json(created);
   } catch {
-    res.status(500).json({ error: 'Gagal mengirim pertanyaan ke Chef.' });
+    res.status(500).json({ error: 'Could not send your question to the Chef.' });
   }
 });
 
@@ -502,7 +544,7 @@ router.get('/inquiries', auth, async (req, res) => {
     );
     res.json(rows);
   } catch {
-    res.status(500).json({ error: 'Gagal memuat daftar pertanyaan Chef.' });
+    res.status(500).json({ error: 'Could not load Chef inquiries.' });
   }
 });
 
@@ -515,10 +557,10 @@ router.get('/inquiries/:id', async (req, res) => {
        FROM chef_inquiries WHERE id = ?`,
       req.params.id
     );
-    if (!row) return res.status(404).json({ error: 'Pertanyaan tidak ditemukan.' });
+    if (!row) return res.status(404).json({ error: 'Inquiry not found.' });
     res.json(row);
   } catch {
-    res.status(500).json({ error: 'Gagal memuat status pertanyaan Chef.' });
+    res.status(500).json({ error: 'Could not load inquiry status.' });
   }
 });
 
@@ -526,12 +568,12 @@ router.post('/inquiries/:id/reply', auth, requireRole('administrator'), async (r
   try {
     const reply = req.body?.reply?.trim();
     if (!reply || reply.length > 1000) {
-      return res.status(400).json({ error: 'Jawaban Chef wajib diisi (maks 1000 karakter).' });
+      return res.status(400).json({ error: 'Chef reply is required (max 1000 chars).' });
     }
 
     const existing = await db.get('SELECT id FROM chef_inquiries WHERE id = ?', req.params.id);
     if (!existing) {
-      return res.status(404).json({ error: 'Pertanyaan pelanggan tidak ditemukan.' });
+      return res.status(404).json({ error: 'Customer inquiry not found.' });
     }
 
     await db.run(
@@ -551,7 +593,7 @@ router.post('/inquiries/:id/reply', auth, requireRole('administrator'), async (r
     );
     res.json(updated);
   } catch {
-    res.status(500).json({ error: 'Gagal menyimpan jawaban Chef.' });
+    res.status(500).json({ error: 'Could not save Chef reply.' });
   }
 });
 

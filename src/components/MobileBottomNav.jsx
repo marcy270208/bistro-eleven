@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useLanguage } from '../lib/i18n';
 
 const icons = {
   home: <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></>,
@@ -10,6 +11,7 @@ const icons = {
 };
 
 export default function MobileBottomNav({ user, cartCount, isCartOpen, openCart }) {
+  const { isId } = useLanguage();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('home');
   if (location.pathname !== '/' || user?.role === 'administrator' || isCartOpen) return null;
@@ -24,23 +26,41 @@ export default function MobileBottomNav({ user, cartCount, isCartOpen, openCart 
     scroll();
   };
 
-  const home = () => { setActiveTab('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const home = () => {
+    setActiveTab('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   return (
     <nav className="mobile-bottom-nav" aria-label="Main navigation">
       <button className={activeTab === 'home' ? 'is-active' : ''} onClick={home}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.home}</svg><span>Home</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.home}</svg>
+        <span>{isId ? 'Beranda' : 'Home'}</span>
       </button>
       <button className={activeTab === 'menu' ? 'is-active' : ''} onClick={() => goToSection('menu', false, 'menu')}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.menu}</svg><span>Menu</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.menu}</svg>
+        <span>Menu</span>
       </button>
       <button className={activeTab === 'search' ? 'is-active' : ''} onClick={() => goToSection('menu', true, 'search')}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.search}</svg><span>Search</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.search}</svg>
+        <span>{isId ? 'Cari' : 'Search'}</span>
       </button>
       <button className={activeTab === 'reviews' ? 'is-active' : ''} onClick={() => goToSection('reviews', false, 'reviews')}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.reviews}</svg><span>Reviews</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">{icons.reviews}</svg>
+        <span>{isId ? 'Ulasan' : 'Reviews'}</span>
       </button>
-      <button className={activeTab === 'basket' ? 'is-active' : ''} onClick={() => { setActiveTab('basket'); openCart(); }} aria-label={`Open basket, ${cartCount} items`}>
-        <span className="mobile-nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true">{icons.cart}</svg>{cartCount > 0 && <i>{cartCount}</i>}</span><span>Basket</span>
+      <button
+        className={activeTab === 'basket' ? 'is-active' : ''}
+        onClick={() => {
+          setActiveTab('basket');
+          openCart();
+        }}
+        aria-label={`Open basket, ${cartCount} items`}
+      >
+        <span className="mobile-nav-icon-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true">{icons.cart}</svg>
+          {cartCount > 0 && <i>{cartCount}</i>}
+        </span>
+        <span>{isId ? 'Keranjang' : 'Basket'}</span>
       </button>
     </nav>
   );

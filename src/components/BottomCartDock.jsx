@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useLanguage } from '../lib/i18n';
 
 export default function BottomCartDock({ isVisible, setIsVisible, cartCount, openCart }) {
+  const { isId } = useLanguage();
   if (!isVisible && cartCount === 0) return null;
 
   return (
@@ -9,13 +11,20 @@ export default function BottomCartDock({ isVisible, setIsVisible, cartCount, ope
         &#128722;
       </span>
       <div className="bottom-cart-copy">
-        <b>Added to your cart</b>
-        <span id="bottom-cart-summary">{cartCount} items</span>
+        <b>{isId ? 'Ditambahkan ke keranjang' : 'Added to your cart'}</b>
+        <span id="bottom-cart-summary">
+          {cartCount} {isId ? 'menu' : 'items'}
+        </span>
       </div>
       <button className="bottom-cart-view" id="bottom-cart-view" onClick={openCart}>
-        View cart <span>&rarr;</span>
+        {isId ? 'Lihat keranjang' : 'View cart'} <span>&rarr;</span>
       </button>
-      <button className="bottom-cart-close" id="bottom-cart-close" aria-label="Dismiss cart message" onClick={() => setIsVisible(false)}>
+      <button
+        className="bottom-cart-close"
+        id="bottom-cart-close"
+        aria-label="Dismiss cart message"
+        onClick={() => setIsVisible(false)}
+      >
         &times;
       </button>
     </div>

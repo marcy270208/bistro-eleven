@@ -14,6 +14,7 @@ import MobileBottomNav from './components/MobileBottomNav';
 import AiConcierge from './components/AiConcierge';
 import { startingDishes } from './data/dishes';
 import { api } from './lib/api';
+import { LanguageProvider } from './lib/i18n';
 
 function App() {
   const [theme, setTheme] = useState(localStorage.getItem('bistroTheme') || 'light');
@@ -106,24 +107,26 @@ function App() {
   };
 
   return (
-    <HashRouter>
-      {authReady && <Header user={user} toggleTheme={toggleTheme} theme={theme} setIsCartOpen={setIsCartOpen} cart={cart} logout={logout} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />}
-      
-      <Routes>
-        <Route path="/" element={<Home dishes={dishes} addToCart={addToCart} user={user} token={token} favoriteDishIds={favoriteDishIds} setFavoriteDishIds={setFavoriteDishIds} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />} />
-        <Route path="/login" element={<Login onAuthenticated={handleAuth} user={user} />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail token={token} setUser={setUser} />} />
-        <Route path="/dashboard" element={authReady ? <Dashboard user={user} token={token} dishes={dishes} setDishes={setDishes} orders={orders} setOrders={setOrders} /> : null} />
-        <Route path="/account" element={authReady ? <AccountSettings user={user} token={token} setUser={setUser} /> : null} />
-        <Route path="/checkout" element={authReady ? <Checkout user={user} token={token} cart={cart} setCart={setCart} dishes={dishes} orders={orders} setOrders={setOrders} /> : null} />
-      </Routes>
+    <LanguageProvider>
+      <HashRouter>
+        {authReady && <Header user={user} toggleTheme={toggleTheme} theme={theme} setIsCartOpen={setIsCartOpen} cart={cart} logout={logout} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />}
+        
+        <Routes>
+          <Route path="/" element={<Home dishes={dishes} addToCart={addToCart} user={user} token={token} favoriteDishIds={favoriteDishIds} setFavoriteDishIds={setFavoriteDishIds} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />} />
+          <Route path="/login" element={<Login onAuthenticated={handleAuth} user={user} />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail token={token} setUser={setUser} />} />
+          <Route path="/dashboard" element={authReady ? <Dashboard user={user} token={token} dishes={dishes} setDishes={setDishes} orders={orders} setOrders={setOrders} /> : null} />
+          <Route path="/account" element={authReady ? <AccountSettings user={user} token={token} setUser={setUser} /> : null} />
+          <Route path="/checkout" element={authReady ? <Checkout user={user} token={token} cart={cart} setCart={setCart} dishes={dishes} orders={orders} setOrders={setOrders} /> : null} />
+        </Routes>
 
-      {user?.role === 'client' && <CartDrawer isOpen={isCartOpen} setIsOpen={setIsCartOpen} cart={cart} dishes={dishes} updateCartQty={updateCartQty} user={user} />}
-      {user?.role === 'client' && <BottomCartDock isVisible={isDockVisible} setIsVisible={setIsDockVisible} cartCount={cartCount} openCart={() => { setIsDockVisible(false); setIsCartOpen(true); }} />}
-      {authReady && <AiConcierge user={user} token={token} addToCart={addToCart} />}
-      {authReady && <MobileBottomNav user={user} cartCount={cartCount} isCartOpen={isCartOpen} openCart={() => user?.role === 'client' ? setIsCartOpen(true) : (window.location.hash = '/login')} />}
-    </HashRouter>
+        {user?.role === 'client' && <CartDrawer isOpen={isCartOpen} setIsOpen={setIsCartOpen} cart={cart} dishes={dishes} updateCartQty={updateCartQty} user={user} />}
+        {user?.role === 'client' && <BottomCartDock isVisible={isDockVisible} setIsVisible={setIsDockVisible} cartCount={cartCount} openCart={() => { setIsDockVisible(false); setIsCartOpen(true); }} />}
+        {authReady && <AiConcierge user={user} token={token} addToCart={addToCart} />}
+        {authReady && <MobileBottomNav user={user} cartCount={cartCount} isCartOpen={isCartOpen} openCart={() => user?.role === 'client' ? setIsCartOpen(true) : (window.location.hash = '/login')} />}
+      </HashRouter>
+    </LanguageProvider>
   );
 }
 

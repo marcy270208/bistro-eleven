@@ -2599,8 +2599,8 @@ input, select, textarea, .status-select {
 }
 .ai-quick-chips {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    overflow-x: auto;
     padding: 10px 12px;
     border-bottom: 1px solid var(--line);
     background: var(--paper);
@@ -2611,12 +2611,36 @@ input, select, textarea, .status-select {
     background: var(--surface);
     color: var(--ink);
     border-radius: 999px;
-    padding: 6px 11px;
-    font: 600 11px var(--sans);
+    padding: 5px 10px;
+    font: 600 10.5px var(--sans);
     cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
 }
 .ai-chip:hover {
     border-color: var(--red);
+    color: var(--red);
+}
+.lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 6px 11px;
+    font: 700 11px var(--sans);
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+.lang-toggle .active-lang {
+    color: var(--red);
+}
+.lang-toggle .lang-divider {
+    opacity: 0.45;
+}
+.mobile-lang-toggle {
+    padding: 5px 9px;
     color: var(--red);
 }
 .ai-chat-messages {
