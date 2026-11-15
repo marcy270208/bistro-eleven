@@ -51,6 +51,16 @@ const Home = ({ dishes, dishesLoading, dishesError, onRetryDishes, addToCart, us
     }
   };
 
+  const deleteReview = async (reviewId) => {
+    if (!window.confirm(isId ? 'Hapus ulasan pelanggan ini?' : 'Delete this customer review?')) return;
+    try {
+      await api(`/api/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE', token });
+      setReviews((current) => current.filter((item) => item.id !== reviewId));
+    } catch (error) {
+      alert(error.message || (isId ? 'Gagal menghapus ulasan.' : 'Could not delete review.'));
+    }
+  };
+
   const filtered = dishes.filter(
     (d) =>
       d.name.toLowerCase().includes(search.toLowerCase()) &&
@@ -350,6 +360,17 @@ const Home = ({ dishes, dishesLoading, dishesError, onRetryDishes, addToCart, us
                   </div>
                 </div>
                 <blockquote>{r.text}</blockquote>
+                {user?.role === 'administrator' && (
+                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="remove-dish"
+                      onClick={() => deleteReview(r.id)}
+                    >
+                      {isId ? 'Hapus ulasan' : 'Delete review'}
+                    </button>
+                  </div>
+                )}
               </article>
             ))
           )}

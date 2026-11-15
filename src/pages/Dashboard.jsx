@@ -23,6 +23,15 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
   const [inquiriesLoading, setInquiriesLoading] = useState(isAdmin);
   const [inquiriesError, setInquiriesError] = useState('');
 
+  // Spreadsheet export state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportRange, setExportRange] = useState('all'); // 'all' | 'last_year' | 'month' | 'custom'
+  const [exportStatus, setExportStatus] = useState('Completed'); // 'Completed' | 'All'
+  const [exportYear, setExportYear] = useState(String(new Date().getFullYear()));
+  const [exportMonth, setExportMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [exportFromDate, setExportFromDate] = useState('');
+  const [exportToDate, setExportToDate] = useState('');
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -201,6 +210,147 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
         'For allergy safety, our kitchen can prepare your order with separate utensils — just leave a note at checkout.',
       ];
 
+  const parseOrderDate = (createdAt) => {
+    if (!createdAt) return null;
+    const iso = String(createdAt).includes('T')
+      ? String(createdAt)
+      : `${String(createdAt).replace(' ', 'T')}Z`;
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? d : null;
+  };
+
+  const exportMatchedOrders = orders.filter((order) => {
+    if (exportStatus === 'Completed' && order.status !== 'Completed') return false;
+    if (exportRange === 'all') return true;
+    const orderDate = parseOrderDate(order.createdAt);
+    if (!orderDate) return false;
+
+    if (exportRange === 'last_year') {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      return orderDate >= oneYearAgo;
+    }
+    if (exportRange === 'month') {
+      const targetYear = Number(exportYear);
+      const targetMonth = Number(exportMonth);
+      return (
+        orderDate.getFullYear() === targetYear &&
+        orderDate.getMonth() + 1 === targetMonth
+      );
+    }
+    if (exportRange === 'custom') {
+      if (exportFromDate) {
+        const from = new Date(`${exportFromDate}T00:00:00`);
+        if (orderDate < from) return false;
+      }
+      if (exportToDate) {
+        const to = new Date(`${exportToDate}T23:59:59.999`);
+        if (orderDate > to) return false;
+      }
+      return true;
+    }
+    return true;
+  });
+
+  const exportTotalRevenue = exportMatchedOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+  const handleDownloadSpreadsheet = () => {
+    if (exportMatchedOrders.length === 0) {
+      alert(
+        isId
+          ? 'Tidak ada data pesanan pada rentang tanggal tersebut.'
+          : 'No orders match the selected date range.'
+      );
+      return;
+    }
+
+    const csvEscape = (value) => {
+      const str = String(value ?? '');
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
+    const headers = [
+      'Order ID',
+      'Date & Time',
+      'Customer Name',
+      'Username',
+      'Order Type',
+      'Location / Table',
+      'Items Ordered',
+      'Order Notes',
+      'Payment Method',
+      'Total (IDR)',
+      'Status',
+    ];
+
+    const rows = exportMatchedOrders.map((order) => {
+      const dt = parseOrderDate(order.createdAt);
+      const formattedDate = dt
+        ? dt.toLocaleString('en-GB', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : order.createdAt || '';
+      const itemsText = Array.isArray(order.items)
+        ? order.items.map((item) => `${item.qty}x ${item.name}`).join('; ')
+        : '';
+      return [
+        order.id,
+        formattedDate,
+        order.customer,
+        order.username || '',
+        order.type,
+        order.location,
+        itemsText,
+        order.notes || '',
+        order.payment,
+        order.total,
+        order.status,
+      ].map(csvEscape);
+    });
+
+    rows.push(
+      [
+        'TOTAL',
+        `${exportMatchedOrders.length} orders`,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        exportTotalRevenue,
+        exportStatus,
+      ].map(csvEscape)
+    );
+
+    const csvContent = '\uFEFF' + [headers.map(csvEscape).join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    const periodTag =
+      exportRange === 'all'
+        ? 'all-sales'
+        : exportRange === 'last_year'
+          ? 'last-1-year'
+          : exportRange === 'month'
+            ? `${exportYear}-${exportMonth}`
+            : `${exportFromDate || 'start'}_to_${exportToDate || 'end'}`;
+
+    link.href = url;
+    link.download = `bistro-eleven-sales-${periodTag}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setShowExportModal(false);
+  };
+
   if (!user) return <Navigate to="/login" />;
 
   return (
@@ -355,6 +505,16 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
                   : 'My orders'}
             </h2>
           </div>
+          {isAdmin && (
+            <button
+              type="button"
+              className="button button-red"
+              style={{ minHeight: '40px', padding: '0 16px', gap: '8px' }}
+              onClick={() => setShowExportModal(true)}
+            >
+              📊 {isId ? 'Export Spreadsheet (.csv)' : 'Export Spreadsheet (.csv)'}
+            </button>
+          )}
         </div>
 
         {isAdmin && (
@@ -872,6 +1032,172 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
               <span>{isId ? 'Total Pendapatan:' : 'Total Revenue:'}</span>
               <span>Rp {revenue.toLocaleString('id-ID')}</span>
             </div>
+            <button
+              type="button"
+              className="button button-red"
+              style={{ width: '100%', marginTop: '16px' }}
+              onClick={() => {
+                setShowSalesModal(false);
+                setShowExportModal(true);
+              }}
+            >
+              📊 {isId ? 'Download Laporan Spreadsheet' : 'Download Sales Spreadsheet'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showExportModal && isAdmin && (
+        <div
+          className="drawer-backdrop open"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setShowExportModal(false)}
+        >
+          <div
+            className="panel"
+            style={{ width: '480px', maxWidth: '92%', margin: '0 auto', position: 'relative', textAlign: 'left' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              style={{
+                position: 'absolute',
+                right: '16px',
+                top: '16px',
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: 'var(--ink)',
+              }}
+              onClick={() => setShowExportModal(false)}
+            >
+              &times;
+            </button>
+            <p className="eyebrow" style={{ marginBottom: '6px' }}>
+              EXCEL &amp; GOOGLE SHEETS (.CSV)
+            </p>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', textAlign: 'left' }}>
+              {isId ? '📊 Download Laporan Penjualan' : '📊 Export Sales Spreadsheet'}
+            </h3>
+            <p className="muted" style={{ marginTop: 0, marginBottom: '18px', textAlign: 'left' }}>
+              {isId
+                ? 'Pilih rentang waktu data pesanan dari database untuk diunduh ke Excel atau Google Sheets.'
+                : 'Choose the date range of orders from the database to download for Excel or Google Sheets.'}
+            </p>
+
+            <div className="clean-form" style={{ marginBottom: '12px' }}>
+              <label htmlFor="export-range">{isId ? 'Periode Waktu' : 'Time Period'}</label>
+              <select
+                id="export-range"
+                value={exportRange}
+                onChange={(e) => setExportRange(e.target.value)}
+                style={{ width: '100%', marginBottom: '14px' }}
+              >
+                <option value="all">{isId ? 'Semua Penjualan (All Time)' : 'All Sales (All Time)'}</option>
+                <option value="last_year">{isId ? 'Setahun Terakhir (365 Hari)' : 'Last 1 Year (365 Days)'}</option>
+                <option value="month">{isId ? 'Pilih Bulan & Tahun Tertentu' : 'Specific Month & Year'}</option>
+                <option value="custom">{isId ? 'Rentang Tanggal Tertentu (Dari - Sampai)' : 'Custom Date Range (From - To)'}</option>
+              </select>
+
+              {exportRange === 'month' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                  <div>
+                    <label htmlFor="export-month">{isId ? 'Bulan' : 'Month'}</label>
+                    <select
+                      id="export-month"
+                      value={exportMonth}
+                      onChange={(e) => setExportMonth(e.target.value)}
+                      style={{ width: '100%' }}
+                    >
+                      {[
+                        ['01', 'Jan'], ['02', 'Feb'], ['03', 'Mar'], ['04', 'Apr'],
+                        ['05', 'May'], ['06', 'Jun'], ['07', 'Jul'], ['08', 'Aug'],
+                        ['09', 'Sep'], ['10', 'Oct'], ['11', 'Nov'], ['12', 'Dec'],
+                      ].map(([val, label]) => (
+                        <option key={val} value={val}>
+                          {val} - {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="export-year">{isId ? 'Tahun' : 'Year'}</label>
+                    <input
+                      id="export-year"
+                      type="number"
+                      min="2024"
+                      max="2035"
+                      value={exportYear}
+                      onChange={(e) => setExportYear(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {exportRange === 'custom' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                  <div>
+                    <label htmlFor="export-from">{isId ? 'Dari Tanggal' : 'From Date'}</label>
+                    <input
+                      id="export-from"
+                      type="date"
+                      value={exportFromDate}
+                      onChange={(e) => setExportFromDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="export-to">{isId ? 'Sampai Tanggal' : 'To Date'}</label>
+                    <input
+                      id="export-to"
+                      type="date"
+                      value={exportToDate}
+                      onChange={(e) => setExportToDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <label htmlFor="export-status">{isId ? 'Filter Status Pesanan' : 'Order Status Filter'}</label>
+              <select
+                id="export-status"
+                value={exportStatus}
+                onChange={(e) => setExportStatus(e.target.value)}
+                style={{ width: '100%', marginBottom: '14px' }}
+              >
+                <option value="Completed">{isId ? 'Hanya Penjualan Selesai (Completed)' : 'Completed Sales Only'}</option>
+                <option value="All">{isId ? 'Semua Status (New, Preparing, Completed, Cancelled)' : 'All Statuses'}</option>
+              </select>
+            </div>
+
+            <div
+              style={{
+                background: 'var(--paper)',
+                border: '1px solid var(--line)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '13px',
+              }}
+            >
+              <span>
+                {isId
+                  ? `${exportMatchedOrders.length} pesanan ditemukan`
+                  : `${exportMatchedOrders.length} matching orders`}
+              </span>
+              <b style={{ color: 'var(--red)' }}>Rp {exportTotalRevenue.toLocaleString('id-ID')}</b>
+            </div>
+
+            <button
+              type="button"
+              className="button button-red"
+              style={{ width: '100%' }}
+              onClick={handleDownloadSpreadsheet}
+            >
+              ⬇ {isId ? 'Download File Spreadsheet (.csv)' : 'Download Spreadsheet (.csv)'}
+            </button>
           </div>
         </div>
       )}

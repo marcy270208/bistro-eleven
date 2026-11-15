@@ -39,7 +39,7 @@ function formatSimpleMarkdown(text) {
   });
 }
 
-export default function AiConcierge({ user, token, addToCart }) {
+export default function AiConcierge({ user, token, addToCart, hidden = false }) {
   const { lang, isId } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -109,7 +109,7 @@ export default function AiConcierge({ user, token, addToCart }) {
     };
   }, [token, guestInquiryIds]);
 
-  if (user?.role === 'administrator') return null;
+  if (user?.role === 'administrator' || hidden) return null;
 
   const answeredCount = inquiries.filter((inq) => inq.status === 'Answered').length;
   const prompts = QUICK_PROMPTS[lang] || QUICK_PROMPTS.en;

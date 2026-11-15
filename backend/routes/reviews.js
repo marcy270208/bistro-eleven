@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import db from '../db.js';
-import { auth } from '../middleware/auth.js';
+import { auth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -26,6 +26,12 @@ router.post('/', auth, async (req, res) => {
       result.lastInsertRowid
     )
   );
+});
+
+router.delete('/:id', auth, requireRole('administrator'), async (req, res) => {
+  const result = await db.run('DELETE FROM reviews WHERE id = ?', req.params.id);
+  if (!result.changes) return res.status(404).json({ error: 'Review not found' });
+  res.status(204).end();
 });
 
 export default router;
