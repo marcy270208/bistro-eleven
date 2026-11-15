@@ -13,9 +13,6 @@ router.get('/', async (_req, res) => {
 
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'client') return res.status(403).json({ error: 'Only customer accounts can post reviews' });
-  const account = await db.get('SELECT photo FROM users WHERE id = ?', req.user.id);
-  if (!account?.photo)
-    return res.status(403).json({ error: 'Upload a profile photo in Account settings before posting a review' });
   const rating = Number(req.body.rating);
   const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
   if (!Number.isInteger(rating) || rating < 1 || rating > 5 || !text || text.length > 1000)

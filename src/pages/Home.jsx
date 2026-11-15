@@ -234,20 +234,20 @@ const Home = ({ dishes, addToCart, user, token, favoriteDishIds, setFavoriteDish
             </div>
           </div>
         )}
-        {user?.role === 'client' && !user.photo && (
+        {!user && (
           <div className="review-form-panel">
-            <h3>{isId ? 'Tambahkan foto profil untuk memberi ulasan' : 'Add a profile photo to review'}</h3>
+            <h3>{isId ? 'Masuk untuk memberi ulasan' : 'Sign in to leave a review'}</h3>
             <p className="muted">
               {isId
-                ? 'Foto profilmu akan ditampilkan di samping ulasanmu.'
-                : 'Your profile photo will appear next to your review.'}
+                ? 'Masuk ke akun pelangganmu untuk membagikan pengalaman makan di Bistro Eleven.'
+                : 'Sign in with your customer account to share your Bistro Eleven dining experience.'}
             </p>
-            <Link className="button button-red" to="/account">
-              {isId ? 'Buka pengaturan akun' : 'Open account settings'} <span>&rarr;</span>
+            <Link className="button button-red" to="/login">
+              {isId ? 'Masuk sekarang' : 'Sign in'} <span>&rarr;</span>
             </Link>
           </div>
         )}
-        {user?.role === 'client' && user.photo && (
+        {user?.role === 'client' && (
           <section className="review-form-panel">
             <h3>{isId ? 'Bagikan pengalamanmu' : 'Share your experience'}</h3>
             <form onSubmit={submitReview}>
