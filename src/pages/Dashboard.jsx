@@ -18,6 +18,10 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
   const [inquiryFilter, setInquiryFilter] = useState('Pending');
   const [chefDrafts, setChefDrafts] = useState({});
   const [replyingId, setReplyingId] = useState(null);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState('');
+  const [inquiriesLoading, setInquiriesLoading] = useState(isAdmin);
+  const [inquiriesError, setInquiriesError] = useState('');
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -80,34 +84,54 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
     }
   };
 
-  React.useEffect(() => {
-    if (!token) return undefined;
-    let active = true;
-    const refreshOrders = () =>
+  const loadOrders = React.useCallback(
+    (showSpinner = false) => {
+      if (!token) return;
+      if (showSpinner) setOrdersLoading(true);
       api('/api/orders', { token })
         .then((data) => {
-          if (active) setOrders(data);
+          setOrders(data);
+          setOrdersError('');
         })
-        .catch(() => {});
-    const refreshInquiries = () => {
-      if (!isAdmin) return;
+        .catch(() => {
+          setOrdersError(isId ? 'Gagal memuat data pesanan dari server.' : 'Could not load orders from server.');
+        })
+        .finally(() => setOrdersLoading(false));
+    },
+    [token, isId, setOrders]
+  );
+
+  const loadInquiries = React.useCallback(
+    (showSpinner = false) => {
+      if (!token || !isAdmin) return;
+      if (showSpinner) setInquiriesLoading(true);
       api('/api/ai/inquiries', { token })
         .then((data) => {
-          if (active && Array.isArray(data)) setChefInquiries(data);
+          if (Array.isArray(data)) setChefInquiries(data);
+          setInquiriesError('');
         })
-        .catch(() => {});
-    };
-    refreshOrders();
-    refreshInquiries();
+        .catch(() => {
+          setInquiriesError(
+            isId ? 'Gagal memuat pertanyaan pelanggan dari server.' : 'Could not load customer inquiries from server.'
+          );
+        })
+        .finally(() => setInquiriesLoading(false));
+    },
+    [token, isAdmin, isId]
+  );
+
+  React.useEffect(() => {
+    if (!token) return undefined;
+    loadOrders(true);
+    loadInquiries(true);
     const interval = window.setInterval(() => {
-      refreshOrders();
-      refreshInquiries();
+      loadOrders(false);
+      loadInquiries(false);
     }, 8000);
     return () => {
-      active = false;
       window.clearInterval(interval);
     };
-  }, [token, isAdmin, setOrders]);
+  }, [token, loadOrders, loadInquiries]);
 
   const handleChefReply = async (inquiryId) => {
     const draft = (chefDrafts[inquiryId] || '').trim();
@@ -370,7 +394,22 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
               </tr>
             </thead>
             <tbody id="orders-list">
-              {filteredOrders.length === 0 && (
+              {ordersLoading ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '32px' }}>
+                    <p className="empty-state">{isId ? 'Memuat pesanan...' : 'Loading orders...'}</p>
+                  </td>
+                </tr>
+              ) : ordersError && filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '32px' }}>
+                    <p className="error" style={{ marginBottom: '10px' }}>{ordersError}</p>
+                    <button type="button" className="filter-tab active" onClick={() => loadOrders(true)}>
+                      {isId ? 'Coba lagi' : 'Retry'}
+                    </button>
+                  </td>
+                </tr>
+              ) : filteredOrders.length === 0 && (
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '32px' }}>
                     <p className="empty-state">{isId ? 'Belum ada pesanan.' : 'No orders yet.'}</p>
@@ -537,7 +576,18 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
           </div>
 
           <div className="chef-inquiries-list">
-            {filteredInquiries.length === 0 && (
+            {inquiriesLoading ? (
+              <p className="empty-state" style={{ textAlign: 'center', padding: '28px 0' }}>
+                {isId ? 'Memuat pertanyaan untuk Chef...' : 'Loading Chef inquiries...'}
+              </p>
+            ) : inquiriesError && filteredInquiries.length === 0 ? (
+              <div className="empty-state" style={{ textAlign: 'center', padding: '28px 0' }}>
+                <p className="error" style={{ marginBottom: '10px' }}>{inquiriesError}</p>
+                <button type="button" className="filter-tab active" onClick={() => loadInquiries(true)}>
+                  {isId ? 'Coba lagi' : 'Retry'}
+                </button>
+              </div>
+            ) : filteredInquiries.length === 0 && (
               <p className="empty-state" style={{ textAlign: 'center', padding: '28px 0' }}>
                 {isId
                   ? 'Belum ada pertanyaan pelanggan di kategori ini.'

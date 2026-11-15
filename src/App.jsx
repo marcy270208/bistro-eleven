@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -22,6 +22,8 @@ function App() {
   const [token, setToken] = useState(() => localStorage.getItem('bistroToken'));
   const [authReady, setAuthReady] = useState(false);
   const [dishes, setDishes] = useState(startingDishes);
+  const [dishesLoading, setDishesLoading] = useState(true);
+  const [dishesError, setDishesError] = useState('');
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -30,11 +32,13 @@ function App() {
   const [isFavoritesOnly, setIsFavoritesOnly] = useState(false);
   const cartCount = cart ? cart.reduce((sum, item) => sum + item.qty, 0) : 0;
 
-  useEffect(() => {
+  const loadDishes = useCallback(() => {
+    setDishesLoading(true);
+    setDishesError('');
     localStorage.removeItem('adminDishes');
     api('/api/dishes')
       .then(serverDishes => {
-        if (!Array.isArray(serverDishes) || serverDishes.length === 0) return;
+        if (!Array.isArray(serverDishes)) return;
         setDishes(serverDishes.map(dish => {
           const originalDish = startingDishes.find(
             item => String(item.id) === String(dish.id) || item.name.toLowerCase() === dish.name?.toLowerCase()
@@ -48,8 +52,15 @@ function App() {
           };
         }));
       })
-      .catch(() => {});
+      .catch(() => {
+        setDishesError('Could not load the latest menu from the server.');
+      })
+      .finally(() => setDishesLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadDishes();
+  }, [loadDishes]);
 
   useEffect(() => {
     if (!token) { setUser(null); setAuthReady(true); return; }
@@ -106,19 +117,29 @@ function App() {
     setUser(authenticatedUser);
   };
 
+  const authLoadingScreen = (
+    <main className="dashboard-page">
+      <section className="panel" style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <p className="eyebrow">BISTRO ELEVEN</p>
+        <p className="muted">Loading your account session...</p>
+      </section>
+    </main>
+  );
+
   return (
     <LanguageProvider>
       <HashRouter>
         {authReady && <Header user={user} toggleTheme={toggleTheme} theme={theme} setIsCartOpen={setIsCartOpen} cart={cart} logout={logout} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />}
         
         <Routes>
-          <Route path="/" element={<Home dishes={dishes} addToCart={addToCart} user={user} token={token} favoriteDishIds={favoriteDishIds} setFavoriteDishIds={setFavoriteDishIds} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />} />
+          <Route path="/" element={<Home dishes={dishes} dishesLoading={dishesLoading} dishesError={dishesError} onRetryDishes={loadDishes} addToCart={addToCart} user={user} token={token} favoriteDishIds={favoriteDishIds} setFavoriteDishIds={setFavoriteDishIds} isFavoritesOnly={isFavoritesOnly} setIsFavoritesOnly={setIsFavoritesOnly} />} />
           <Route path="/login" element={<Login onAuthenticated={handleAuth} user={user} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail token={token} setUser={setUser} />} />
-          <Route path="/dashboard" element={authReady ? <Dashboard user={user} token={token} dishes={dishes} setDishes={setDishes} orders={orders} setOrders={setOrders} /> : null} />
-          <Route path="/account" element={authReady ? <AccountSettings user={user} token={token} setUser={setUser} /> : null} />
-          <Route path="/checkout" element={authReady ? <Checkout user={user} token={token} cart={cart} setCart={setCart} dishes={dishes} orders={orders} setOrders={setOrders} /> : null} />
+          <Route path="/dashboard" element={authReady ? <Dashboard user={user} token={token} dishes={dishes} setDishes={setDishes} orders={orders} setOrders={setOrders} /> : authLoadingScreen} />
+          <Route path="/admin" element={authReady ? (user?.role === 'administrator' ? <Dashboard user={user} token={token} dishes={dishes} setDishes={setDishes} orders={orders} setOrders={setOrders} /> : <Navigate to={user ? '/dashboard' : '/login'} replace />) : authLoadingScreen} />
+          <Route path="/account" element={authReady ? <AccountSettings user={user} token={token} setUser={setUser} /> : authLoadingScreen} />
+          <Route path="/checkout" element={authReady ? <Checkout user={user} token={token} cart={cart} setCart={setCart} dishes={dishes} orders={orders} setOrders={setOrders} /> : authLoadingScreen} />
         </Routes>
 
         {user?.role === 'client' && <CartDrawer isOpen={isCartOpen} setIsOpen={setIsCartOpen} cart={cart} dishes={dishes} updateCartQty={updateCartQty} user={user} />}

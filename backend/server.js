@@ -13,7 +13,38 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 }
 
 const app = express();
-app.use(cors());
+const defaultAllowedOrigins = [
+  'https://marcy270208.github.io',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://localhost:8081',
+];
+const envOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
+const appOrigin = (() => {
+  try {
+    return process.env.APP_URL ? new URL(process.env.APP_URL).origin : null;
+  } catch {
+    return null;
+  }
+})();
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...envOrigins, ...(appOrigin ? [appOrigin] : [])]);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow mobile apps / curl (no Origin header) and any configured web origin
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '6mb' }));
 
 app.get('/', (_req, res) => res.json({ status: 'Bistro Eleven API running' }));

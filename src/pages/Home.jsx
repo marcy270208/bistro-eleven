@@ -4,17 +4,19 @@ import { api } from '../lib/api';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../lib/i18n';
 
-const Home = ({ dishes, addToCart, user, token, favoriteDishIds, setFavoriteDishIds, isFavoritesOnly, setIsFavoritesOnly }) => {
+const Home = ({ dishes, dishesLoading, dishesError, onRetryDishes, addToCart, user, token, favoriteDishIds, setFavoriteDishIds, isFavoritesOnly, setIsFavoritesOnly }) => {
   const { isId } = useLanguage();
   const [search, setSearch] = useState('');
   const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [rating, setRating] = useState('5');
   const [reviewText, setReviewText] = useState('');
   const [reviewError, setReviewError] = useState('');
   const [reviewBusy, setReviewBusy] = useState(false);
 
-  const loadReviews = () =>
-    api('/api/reviews')
+  const loadReviews = () => {
+    setReviewsLoading(true);
+    return api('/api/reviews')
       .then((data) => {
         setReviews(data);
         setReviewError('');
@@ -23,7 +25,9 @@ const Home = ({ dishes, addToCart, user, token, favoriteDishIds, setFavoriteDish
         setReviewError(
           isId ? 'Ulasan sementara tidak tersedia.' : 'Reviews are temporarily unavailable.'
         )
-      );
+      )
+      .finally(() => setReviewsLoading(false));
+  };
   useEffect(() => {
     loadReviews();
   }, []);
@@ -143,8 +147,24 @@ const Home = ({ dishes, addToCart, user, token, favoriteDishIds, setFavoriteDish
             />
           </div>
         </div>
+        {dishesError && (
+          <div className="empty-state" role="alert" style={{ marginBottom: '20px' }}>
+            <p className="error" style={{ marginBottom: '10px' }}>
+              {isId ? 'Gagal memuat menu terbaru dari server.' : dishesError}
+            </p>
+            {onRetryDishes && (
+              <button type="button" className="filter-tab active" onClick={onRetryDishes}>
+                {isId ? 'Coba lagi' : 'Retry'}
+              </button>
+            )}
+          </div>
+        )}
         <div className="menu-grid">
-          {filtered.length ? (
+          {dishesLoading && filtered.length === 0 ? (
+            <div className="empty-state menu-empty-state">
+              <p>{isId ? 'Memuat menu dari server...' : 'Loading menu from server...'}</p>
+            </div>
+          ) : filtered.length ? (
             filtered.map((dish) => (
               <DishCard
                 key={dish.id}
@@ -279,11 +299,20 @@ const Home = ({ dishes, addToCart, user, token, favoriteDishIds, setFavoriteDish
             </form>
           </section>
         )}
-        <p className="error" role="status">
-          {reviewError && !user ? reviewError : ''}
-        </p>
+        {reviewError && !user && (
+          <div className="empty-state" role="status" style={{ padding: '12px 0' }}>
+            <p className="error" style={{ marginBottom: '8px' }}>{reviewError}</p>
+            <button type="button" className="filter-tab" onClick={loadReviews}>
+              {isId ? 'Muat ulang ulasan' : 'Retry'}
+            </button>
+          </div>
+        )}
         <div id="reviews-list" className="reviews-grid">
-          {reviews.length === 0 ? (
+          {reviewsLoading ? (
+            <p className="empty-state">
+              {isId ? 'Memuat ulasan pelanggan...' : 'Loading guest reviews...'}
+            </p>
+          ) : reviews.length === 0 ? (
             <p className="empty-state">
               {isId
                 ? 'Belum ada ulasan. Jadilah yang pertama membagikan pengalamanmu!'
