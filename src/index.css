@@ -3270,3 +3270,24 @@ input, select, textarea, .status-select {
 .chef-reply-row textarea {
     border-radius: 10px !important;
 }
+
+
+/* 9. Hide Grey Scrollbars Globally While Keeping Smooth Scrolling */
+html,
+body,
+* {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Keep Hero Note clear of the floating AI Concierge button */
+.hero-note {
+    bottom: 92px !important;
+}
