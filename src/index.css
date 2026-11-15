@@ -3291,3 +3291,11 @@ body::-webkit-scrollbar,
 .hero-note {
     bottom: 92px !important;
 }
+
+/* Breathing room between Share your experience form and review cards */
+.review-form-panel {
+    margin: 28px auto 44px !important;
+}
+.reviews-grid {
+    margin-top: 24px !important;
+}
