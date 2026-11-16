@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { api } from '../lib/api';
 import { uploadImageFile } from '../lib/imageUpload';
 import { useLanguage } from '../lib/i18n';
@@ -264,10 +265,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
       return;
     }
 
-    const csvEscape = (value) => {
-      const str = String(value ?? '');
-      return `"${str.replace(/"/g, '""')}"`;
-    };
+    const cleanCell = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
 
     const headers = [
       'Order ID',
@@ -298,40 +296,57 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
         ? order.items.map((item) => `${item.qty}x ${item.name}`).join('; ')
         : '';
       return [
-        order.id,
-        formattedDate,
-        order.customer,
-        order.username || '',
-        order.type,
-        order.location,
-        itemsText,
-        order.notes || '',
-        order.payment,
-        order.total,
-        order.status,
-      ].map(csvEscape);
+        cleanCell(order.id),
+        cleanCell(formattedDate),
+        cleanCell(order.customer),
+        cleanCell(order.username),
+        cleanCell(order.type),
+        cleanCell(order.location),
+        cleanCell(itemsText),
+        cleanCell(order.notes),
+        cleanCell(order.payment),
+        Number(order.total || 0),
+        cleanCell(order.status),
+      ];
     });
 
-    rows.push(
-      [
-        'TOTAL',
-        `${exportMatchedOrders.length} orders`,
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        exportTotalRevenue,
-        exportStatus,
-      ].map(csvEscape)
-    );
+    rows.push([
+      'TOTAL',
+      `${exportMatchedOrders.length} orders`,
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      Number(exportTotalRevenue || 0),
+      exportStatus,
+    ]);
 
-    const csvContent = '\uFEFF' + [headers.map(csvEscape).join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const sheetData = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    // Auto-fit column widths so the table opens neatly in Excel & Google Sheets
+    ws['!cols'] = headers.map((header, colIdx) => {
+      const maxLen = sheetData.reduce((max, row) => {
+        const len = String(row[colIdx] ?? '').length;
+        return Math.max(max, len);
+      }, header.length);
+      return { wch: Math.min(Math.max(maxLen + 3, 12), 48) };
+    });
+
+    // Enable Excel AutoFilter on header row and format IDR totals as numbers
+    ws['!autofilter'] = { ref: `A1:K${exportMatchedOrders.length + 1}` };
+    for (let r = 2; r <= sheetData.length; r += 1) {
+      const cell = ws[`J${r}`];
+      if (cell && typeof cell.v === 'number') {
+        cell.z = '#,##0';
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sales');
 
     const periodTag =
       exportRange === 'all'
@@ -342,12 +357,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
             ? `${exportYear}-${exportMonth}`
             : `${exportFromDate || 'start'}_to_${exportToDate || 'end'}`;
 
-    link.href = url;
-    link.download = `bistro-eleven-sales-${periodTag}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, `bistro-eleven-sales-${periodTag}.xlsx`);
     setShowExportModal(false);
   };
 
@@ -512,7 +522,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
               style={{ minHeight: '40px', padding: '0 16px', gap: '8px' }}
               onClick={() => setShowExportModal(true)}
             >
-              📊 {isId ? 'Export Spreadsheet (.csv)' : 'Export Spreadsheet (.csv)'}
+              📊 {isId ? 'Export Spreadsheet (.xlsx)' : 'Export Spreadsheet (.xlsx)'}
             </button>
           )}
         </div>
@@ -1074,7 +1084,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
               &times;
             </button>
             <p className="eyebrow" style={{ marginBottom: '6px' }}>
-              EXCEL &amp; GOOGLE SHEETS (.CSV)
+              EXCEL &amp; GOOGLE SHEETS (.XLSX)
             </p>
             <h3 style={{ marginTop: 0, marginBottom: '8px', textAlign: 'left' }}>
               {isId ? '📊 Download Laporan Penjualan' : '📊 Export Sales Spreadsheet'}
@@ -1196,7 +1206,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
               style={{ width: '100%' }}
               onClick={handleDownloadSpreadsheet}
             >
-              ⬇ {isId ? 'Download File Spreadsheet (.csv)' : 'Download Spreadsheet (.csv)'}
+              ⬇ {isId ? 'Download File Excel (.xlsx)' : 'Download Spreadsheet (.xlsx)'}
             </button>
           </div>
         </div>
