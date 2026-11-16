@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { uploadImageFile } from '../lib/imageUpload';
@@ -25,6 +25,7 @@ export default function AccountSettings({ user, token, setUser }) {
   const [emailError, setEmailError] = useState('');
   const [busy, setBusy] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef(null);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -49,6 +50,33 @@ export default function AccountSettings({ user, token, setUser }) {
       event.target.value = '';
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setProfileError('');
+    setProfileMessage('');
+    setBusy(true);
+    try {
+      const updatedUser = await api('/api/auth/profile', {
+        method: 'PUT',
+        token,
+        body: JSON.stringify({ ...profile, photo: null }),
+      });
+      setUser(updatedUser);
+      setProfile(updatedUser);
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+      setProfileMessage(
+        isId ? 'Foto profil berhasil dihapus.' : 'Profile photo removed.'
+      );
+    } catch (error) {
+      setProfileError(
+        error.message || (isId ? 'Gagal menghapus foto profil.' : 'Could not remove profile photo.')
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -135,12 +163,30 @@ export default function AccountSettings({ user, token, setUser }) {
           </div>
           <label htmlFor="profile-photo">{isId ? 'Foto profil' : 'Profile photo'}</label>
           <input
+            ref={photoInputRef}
             id="profile-photo"
             type="file"
             accept="image/png,image/jpeg,image/webp"
             onChange={handlePhoto}
             disabled={uploadingPhoto || busy}
           />
+          {profile.photo && (
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={handleRemovePhoto}
+              disabled={uploadingPhoto || busy}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {busy
+                ? isId
+                  ? 'Menghapus...'
+                  : 'Removing...'
+                : isId
+                  ? 'Hapus foto profil'
+                  : 'Remove profile photo'}
+            </button>
+          )}
           {uploadingPhoto && (
             <small className="muted">
               {isId

@@ -176,6 +176,30 @@ export default function AccountScreen({
     }
   };
 
+  const handleRemovePhoto = async () => {
+    setUploading(true);
+    setProfileMsg({ type: '', text: '' });
+    try {
+      const updated = await api('/api/auth/profile', {
+        token,
+        method: 'PUT',
+        body: JSON.stringify({ ...profile, photo: null }),
+      });
+      onUserUpdated(updated);
+      setProfileMsg({
+        type: 'success',
+        text: isId ? 'Foto profil berhasil dihapus!' : 'Profile photo removed!',
+      });
+    } catch (err) {
+      setProfileMsg({
+        type: 'error',
+        text: err.message || (isId ? 'Gagal menghapus foto' : 'Failed to remove photo'),
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     setSaving(true);
     setProfileMsg({ type: '', text: '' });
@@ -358,21 +382,34 @@ export default function AccountScreen({
           <View style={{ flex: 1 }}>
             <Text style={styles.userHandle}>@{user?.username}</Text>
             <Text style={styles.userRole}>{user?.role || 'client'}</Text>
-            <TouchableOpacity
-              style={styles.photoBtn}
-              onPress={handlePickPhoto}
-              disabled={uploading}
-            >
-              <Text style={styles.photoBtnText}>
-                {uploading
-                  ? isId
-                    ? 'Mengunggah...'
-                    : 'Uploading...'
-                  : isId
-                  ? 'Ganti Foto Profil'
-                  : 'Change Profile Photo'}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <TouchableOpacity
+                style={styles.photoBtn}
+                onPress={handlePickPhoto}
+                disabled={uploading}
+              >
+                <Text style={styles.photoBtnText}>
+                  {uploading
+                    ? isId
+                      ? 'Memproses...'
+                      : 'Processing...'
+                    : isId
+                    ? 'Ganti Foto Profil'
+                    : 'Change Profile Photo'}
+                </Text>
+              </TouchableOpacity>
+              {profile.photo ? (
+                <TouchableOpacity
+                  style={styles.removePhotoBtn}
+                  onPress={handleRemovePhoto}
+                  disabled={uploading}
+                >
+                  <Text style={styles.removePhotoBtnText}>
+                    {isId ? 'Hapus Foto' : 'Remove Photo'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
         </View>
 
@@ -533,6 +570,17 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   photoBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.ink },
+  removePhotoBtn: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: COLORS.dangerBg,
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
+  removePhotoBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.danger },
   logoutBtn: {
     minHeight: 48,
     borderRadius: 12,
