@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { api } from '../lib/api';
 import { uploadImageFile } from '../lib/imageUpload';
 import { useLanguage } from '../lib/i18n';
@@ -267,6 +267,15 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
 
     const cleanCell = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
 
+    const periodLabel =
+      exportRange === 'all'
+        ? 'All Time'
+        : exportRange === 'last_year'
+          ? 'Last 1 Year'
+          : exportRange === 'month'
+            ? `${exportYear}-${exportMonth}`
+            : `${exportFromDate || 'Start'} to ${exportToDate || 'Today'}`;
+
     const headers = [
       'Order ID',
       'Date & Time',
@@ -281,7 +290,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
       'Status',
     ];
 
-    const rows = exportMatchedOrders.map((order) => {
+    const dataRows = exportMatchedOrders.map((order) => {
       const dt = parseOrderDate(order.createdAt);
       const formattedDate = dt
         ? dt.toLocaleString('en-GB', {
@@ -293,7 +302,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
           })
         : order.createdAt || '';
       const itemsText = Array.isArray(order.items)
-        ? order.items.map((item) => `${item.qty}x ${item.name}`).join('; ')
+        ? order.items.map((item) => `${item.qty}x ${item.name}`).join('\n')
         : '';
       return [
         cleanCell(order.id),
@@ -302,7 +311,7 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
         cleanCell(order.username),
         cleanCell(order.type),
         cleanCell(order.location),
-        cleanCell(itemsText),
+        itemsText,
         cleanCell(order.notes),
         cleanCell(order.payment),
         Number(order.total || 0),
@@ -310,9 +319,13 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
       ];
     });
 
-    rows.push([
+    const orderCountLabel = `${exportMatchedOrders.length} ${
+      exportMatchedOrders.length === 1 ? 'order' : 'orders'
+    }`;
+
+    const totalRow = [
       'TOTAL',
-      `${exportMatchedOrders.length} orders`,
+      orderCountLabel,
       '',
       '',
       '',
@@ -322,28 +335,131 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
       '',
       Number(exportTotalRevenue || 0),
       exportStatus,
-    ]);
+    ];
 
-    const sheetData = [headers, ...rows];
+    const titleRow = ['BISTRO ELEVEN — SALES REPORT', ...Array(10).fill('')];
+    const metaRow = [
+      `Period: ${periodLabel}   |   Status: ${exportStatus}   |   Exported: ${new Date().toLocaleString('en-GB')}`,
+      ...Array(10).fill(''),
+    ];
+    const spacerRow = Array(11).fill('');
+
+    const sheetData = [titleRow, metaRow, spacerRow, headers, ...dataRows, totalRow];
     const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-    // Auto-fit column widths so the table opens neatly in Excel & Google Sheets
-    ws['!cols'] = headers.map((header, colIdx) => {
-      const maxLen = sheetData.reduce((max, row) => {
-        const len = String(row[colIdx] ?? '').length;
-        return Math.max(max, len);
-      }, header.length);
-      return { wch: Math.min(Math.max(maxLen + 3, 12), 48) };
-    });
+    const thinBorder = {
+      top: { style: 'thin', color: { rgb: 'E2D6C8' } },
+      bottom: { style: 'thin', color: { rgb: 'E2D6C8' } },
+      left: { style: 'thin', color: { rgb: 'E2D6C8' } },
+      right: { style: 'thin', color: { rgb: 'E2D6C8' } },
+    };
 
-    // Enable Excel AutoFilter on header row and format IDR totals as numbers
-    ws['!autofilter'] = { ref: `A1:K${exportMatchedOrders.length + 1}` };
-    for (let r = 2; r <= sheetData.length; r += 1) {
-      const cell = ws[`J${r}`];
-      if (cell && typeof cell.v === 'number') {
-        cell.z = '#,##0';
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
+    ];
+
+    // Style title & subtitle banner
+    for (let c = 0; c < 11; c += 1) {
+      const tRef = XLSX.utils.encode_cell({ r: 0, c });
+      if (ws[tRef]) {
+        ws[tRef].s = {
+          font: { bold: true, sz: 14, color: { rgb: '3A2216' } },
+          fill: { fgColor: { rgb: 'FFF8F0' } },
+          alignment: { vertical: 'center', horizontal: 'left' },
+        };
+      }
+      const mRef = XLSX.utils.encode_cell({ r: 1, c });
+      if (ws[mRef]) {
+        ws[mRef].s = {
+          font: { sz: 10, color: { rgb: '7C6254' } },
+          fill: { fgColor: { rgb: 'FFF8F0' } },
+          alignment: { vertical: 'center', horizontal: 'left' },
+        };
       }
     }
+
+    // Style header row (row index 3)
+    for (let c = 0; c < 11; c += 1) {
+      const ref = XLSX.utils.encode_cell({ r: 3, c });
+      ws[ref].s = {
+        font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: 'CF733E' } },
+        border: thinBorder,
+        alignment: {
+          vertical: 'center',
+          horizontal: c === 9 ? 'right' : c === 4 || c === 8 || c === 10 ? 'center' : 'left',
+        },
+      };
+    }
+
+    // Style data rows (row index 4 .. 4 + dataRows.length - 1)
+    const rowHeights = [{ hpt: 28 }, { hpt: 20 }, { hpt: 10 }, { hpt: 26 }];
+    dataRows.forEach((row, idx) => {
+      const r = 4 + idx;
+      const isAlt = idx % 2 === 1;
+      const itemLines = String(row[6] || '').split('\n').length;
+      rowHeights.push({ hpt: Math.max(22, itemLines * 16 + 6) });
+
+      for (let c = 0; c < 11; c += 1) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+        ws[ref].s = {
+          font: { sz: 10, color: { rgb: '2B1A12' }, bold: c === 0 },
+          fill: { fgColor: { rgb: isAlt ? 'FAF5EE' : 'FFFFFF' } },
+          border: thinBorder,
+          alignment: {
+            vertical: 'center',
+            horizontal: c === 9 ? 'right' : c === 4 || c === 8 || c === 10 ? 'center' : 'left',
+            wrapText: c === 5 || c === 6 || c === 7,
+          },
+        };
+        if (c === 9) {
+          ws[ref].z = '#,##0';
+        }
+      }
+    });
+
+    // Style TOTAL row
+    const totalRowIdx = 4 + dataRows.length;
+    rowHeights.push({ hpt: 26 });
+    for (let c = 0; c < 11; c += 1) {
+      const ref = XLSX.utils.encode_cell({ r: totalRowIdx, c });
+      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+      ws[ref].s = {
+        font: { bold: true, sz: 11, color: { rgb: '3A2216' } },
+        fill: { fgColor: { rgb: 'F4ECE4' } },
+        border: {
+          top: { style: 'medium', color: { rgb: 'CF733E' } },
+          bottom: { style: 'medium', color: { rgb: '3A2216' } },
+          left: thinBorder.left,
+          right: thinBorder.right,
+        },
+        alignment: {
+          vertical: 'center',
+          horizontal: c === 9 ? 'right' : c === 10 ? 'center' : 'left',
+        },
+      };
+      if (c === 9) {
+        ws[ref].z = '#,##0';
+      }
+    }
+
+    ws['!rows'] = rowHeights;
+    ws['!cols'] = [
+      { wch: 24 }, // Order ID
+      { wch: 18 }, // Date & Time
+      { wch: 26 }, // Customer Name
+      { wch: 16 }, // Username
+      { wch: 13 }, // Order Type
+      { wch: 20 }, // Location / Table
+      { wch: 36 }, // Items Ordered (multiline)
+      { wch: 24 }, // Order Notes
+      { wch: 16 }, // Payment Method
+      { wch: 15 }, // Total (IDR)
+      { wch: 14 }, // Status
+    ];
+    ws['!autofilter'] = { ref: `A4:K${4 + dataRows.length}` };
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sales');
