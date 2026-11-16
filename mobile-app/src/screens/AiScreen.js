@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +16,8 @@ import { COLORS, formatRupiah } from '../theme';
 
 export default function AiScreen({ token, user, lang, onAddToCart }) {
   const isId = lang === 'id';
+  const isAdmin = user?.role === 'administrator';
+  const scrollRef = useRef(null);
 
   const [messages, setMessages] = useState([
     {
@@ -32,6 +35,10 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
   const [escalatingIdx, setEscalatingIdx] = useState(-1);
   const [inquiries, setInquiries] = useState([]);
   const [loadingInq, setLoadingInq] = useState(false);
+  const [inqFilter, setInqFilter] = useState('Pending');
+  const [chefDrafts, setChefDrafts] = useState({});
+  const [replyingId, setReplyingId] = useState(null);
+  const [chefError, setChefError] = useState('');
 
   const loadInquiries = useCallback(async () => {
     if (!token) {
@@ -39,19 +46,28 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
       return;
     }
     setLoadingInq(true);
+    setChefError('');
     try {
       const data = await api('/api/ai/inquiries', { token });
       setInquiries(Array.isArray(data) ? data : []);
-    } catch {
-      // Ignore quietly so chat remains usable
+    } catch (err) {
+      if (isAdmin) {
+        setChefError(err.message || (isId ? 'Gagal memuat pertanyaan' : 'Failed to load inquiries'));
+      }
     } finally {
       setLoadingInq(false);
     }
-  }, [token]);
+  }, [token, isAdmin, isId]);
 
   useEffect(() => {
     loadInquiries();
   }, [loadInquiries]);
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  };
 
   const sendMessage = async (preset) => {
     const query = (preset ?? input).trim();
@@ -65,6 +81,7 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
     setMessages((prev) => [...prev, { role: 'user', text: query }]);
     if (!preset) setInput('');
     setSending(true);
+    scrollToBottom();
 
     try {
       const data = await api('/api/ai/chat', {
@@ -81,6 +98,7 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
           question: data.originalQuestion || query,
         },
       ]);
+      scrollToBottom();
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -94,6 +112,7 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
           question: query,
         },
       ]);
+      scrollToBottom();
     } finally {
       setSending(false);
     }
@@ -128,6 +147,170 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
     }
   };
 
+  const handleChefReply = async (inq) => {
+    const reply = (chefDrafts[inq.id] || '').trim();
+    if (!reply) return;
+    setReplyingId(inq.id);
+    setChefError('');
+    try {
+      const updated = await api(`/api/ai/inquiries/${inq.id}/reply`, {
+        token,
+        method: 'POST',
+        body: JSON.stringify({ reply }),
+      });
+      setInquiries((prev) => prev.map((item) => (item.id === inq.id ? updated : item)));
+      setChefDrafts((prev) => ({ ...prev, [inq.id]: '' }));
+    } catch (err) {
+      setChefError(err.message || (isId ? 'Gagal mengirim balasan' : 'Failed to send reply'));
+    } finally {
+      setReplyingId(null);
+    }
+  };
+
+  // ADMIN / HEAD CHEF VIEW
+  if (isAdmin) {
+    const filteredInquiries = inquiries.filter((inq) => {
+      if (inqFilter === 'Pending') return inq.status !== 'Answered';
+      if (inqFilter === 'Answered') return inq.status === 'Answered';
+      return true;
+    });
+
+    return (
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 95 : 85}
+      >
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={loadingInq}
+              onRefresh={loadInquiries}
+              tintColor={COLORS.accent}
+            />
+          }
+        >
+          <View style={styles.headerCard}>
+            <View style={styles.inqHeader}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.eyebrow}>KITCHEN DESK · HEAD CHEF</Text>
+                <Text style={styles.title}>
+                  {isId ? 'Pertanyaan Pelanggan' : 'Customer Inquiries'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.refreshBtn} onPress={loadInquiries}>
+                <Text style={styles.refreshBtnText}>{isId ? 'Muat ulang' : 'Refresh'}</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.disclaimer}>
+              {isId
+                ? 'Pertanyaan dari pelanggan yang diteruskan dari AI Concierge muncul di sini untuk dibalas langsung oleh Chef.'
+                : 'Customer questions escalated from the AI Concierge appear here for the Head Chef to answer.'}
+            </Text>
+          </View>
+
+          <View style={styles.chipRow}>
+            {['Pending', 'Answered', 'All'].map((f) => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.filterPill, inqFilter === f && styles.filterPillActive]}
+                onPress={() => setInqFilter(f)}
+              >
+                <Text style={[styles.filterText, inqFilter === f && styles.filterTextActive]}>
+                  {f}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {chefError ? <Text style={styles.errorText}>{chefError}</Text> : null}
+
+          {loadingInq ? (
+            <ActivityIndicator size="large" color={COLORS.accent} style={{ marginTop: 20 }} />
+          ) : null}
+
+          {!loadingInq && filteredInquiries.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.mutedText}>
+                {isId ? 'Tidak ada pertanyaan di filter ini.' : 'No inquiries in this filter.'}
+              </Text>
+            </View>
+          ) : null}
+
+          {filteredInquiries.map((inq) => (
+            <View key={inq.id} style={styles.chefCard}>
+              <View style={styles.inqHeader}>
+                <Text style={styles.chefCustomer}>
+                  {inq.customerName || 'Guest'}
+                  {inq.username ? ` (@${inq.username})` : ''}
+                </Text>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    inq.status === 'Answered' ? styles.badgeDone : styles.badgePending,
+                  ]}
+                >
+                  <Text style={styles.statusBadgeText}>{inq.status || 'Pending'}</Text>
+                </View>
+              </View>
+              <Text style={styles.inqDate}>
+                {inq.createdAt ? new Date(inq.createdAt).toLocaleString() : ''}
+              </Text>
+              <Text style={styles.chefQuestion}>{inq.question}</Text>
+
+              {inq.chefReply ? (
+                <View style={styles.replyBox}>
+                  <Text style={styles.replyLabel}>Chef Reply:</Text>
+                  <Text style={styles.replyBody}>{inq.chefReply}</Text>
+                </View>
+              ) : null}
+
+              <TextInput
+                style={styles.chefInput}
+                value={chefDrafts[inq.id] ?? ''}
+                onChangeText={(val) => setChefDrafts((prev) => ({ ...prev, [inq.id]: val }))}
+                placeholder={
+                  inq.chefReply
+                    ? isId
+                      ? 'Perbarui balasan Chef...'
+                      : 'Update Chef reply...'
+                    : isId
+                    ? 'Tulis balasan dari Kepala Koki...'
+                    : 'Write Head Chef reply...'
+                }
+                placeholderTextColor={COLORS.muted}
+                multiline
+              />
+              <TouchableOpacity
+                style={[
+                  styles.chefSendBtn,
+                  (!(chefDrafts[inq.id] || '').trim() || replyingId === inq.id) &&
+                    styles.btnDisabled,
+                ]}
+                onPress={() => handleChefReply(inq)}
+                disabled={!(chefDrafts[inq.id] || '').trim() || replyingId === inq.id}
+              >
+                <Text style={styles.sendBtnText}>
+                  {replyingId === inq.id
+                    ? isId
+                      ? 'Mengirim...'
+                      : 'Sending...'
+                    : isId
+                    ? 'Kirim Balasan Chef'
+                    : 'Send Chef Reply'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // CLIENT AI CONCIERGE VIEW
   const quickChips = isId
     ? ['Rekomendasi best seller?', 'Ada menu pedas?', 'Menu vegetarian?']
     : ['Best seller dish?', 'Any spicy options?', 'Vegetarian choices?'];
@@ -135,12 +318,15 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 95 : 85}
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.flex}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        onContentSizeChange={scrollToBottom}
       >
         <View style={styles.headerCard}>
           <Text style={styles.eyebrow}>AI CONCIERGE & LIVE CHEF</Text>
@@ -273,6 +459,7 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
           style={styles.input}
           value={input}
           onChangeText={setInput}
+          onFocus={scrollToBottom}
           placeholder={isId ? 'Tanya tentang menu...' : 'Ask about our menu...'}
           placeholderTextColor={COLORS.muted}
           returnKeyType="send"
@@ -304,6 +491,16 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: COLORS.accent },
   title: { fontSize: 22, fontWeight: '700', color: COLORS.ink, marginTop: 2 },
   disclaimer: { fontSize: 12, color: COLORS.muted, marginTop: 4, lineHeight: 17 },
+  refreshBtn: {
+    minHeight: 40,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: COLORS.soft,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  refreshBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.ink },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   chip: {
     minHeight: 40,
@@ -315,6 +512,62 @@ const styles = StyleSheet.create({
     borderColor: COLORS.line,
   },
   chipText: { fontSize: 12, fontWeight: '600', color: COLORS.ink },
+  filterPill: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  filterPillActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  filterText: { fontSize: 13, fontWeight: '600', color: COLORS.ink },
+  filterTextActive: { color: '#fff' },
+  emptyBox: { paddingVertical: 32, alignItems: 'center' },
+  errorText: { color: COLORS.danger, fontSize: 13, marginBottom: 10 },
+  chefCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  chefCustomer: { fontSize: 14, fontWeight: '700', color: COLORS.ink, flex: 1, paddingRight: 8 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  badgePending: { backgroundColor: COLORS.warningBg },
+  badgeDone: { backgroundColor: COLORS.successBg },
+  statusBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.ink },
+  inqDate: { fontSize: 11, color: COLORS.muted, marginTop: 2, marginBottom: 8 },
+  chefQuestion: { fontSize: 14, color: COLORS.ink, fontWeight: '600', marginBottom: 10 },
+  replyBox: {
+    backgroundColor: COLORS.soft,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  replyLabel: { fontSize: 11, fontWeight: '700', color: COLORS.accent, marginBottom: 2 },
+  replyBody: { fontSize: 13, color: COLORS.ink },
+  chefInput: {
+    minHeight: 68,
+    backgroundColor: COLORS.paper,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 12,
+    padding: 10,
+    fontSize: 13,
+    color: COLORS.ink,
+    marginBottom: 8,
+    textAlignVertical: 'top',
+  },
+  chefSendBtn: {
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   bubble: { borderRadius: 16, padding: 14, marginBottom: 12, maxWidth: '92%' },
   aiBubble: {
     alignSelf: 'flex-start',

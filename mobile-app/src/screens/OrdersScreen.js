@@ -11,21 +11,27 @@ import {
 import { api } from '../lib/api';
 import { COLORS, formatRupiah } from '../theme';
 
+const STATUS_OPTIONS = ['New', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
+
 function getStatusColors(status) {
   const s = String(status || '').toLowerCase();
   if (s === 'completed') return { bg: COLORS.successBg, fg: COLORS.success };
   if (s === 'ready') return { bg: '#dbeafe', fg: '#1d4ed8' };
   if (s === 'preparing') return { bg: COLORS.warningBg, fg: COLORS.warning };
+  if (s === 'cancelled') return { bg: COLORS.dangerBg, fg: COLORS.danger };
   return { bg: COLORS.soft, fg: COLORS.ink };
 }
 
-export default function OrdersScreen({ token, lang, onGoLogin }) {
+export default function OrdersScreen({ token, user, lang, onGoLogin }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [adminFilter, setAdminFilter] = useState('Active');
+  const [updatingId, setUpdatingId] = useState(null);
 
   const isId = lang === 'id';
+  const isAdmin = user?.role === 'administrator';
 
   const loadOrders = useCallback(
     async (isRefresh = false) => {
@@ -54,6 +60,24 @@ export default function OrdersScreen({ token, lang, onGoLogin }) {
     loadOrders(false);
   }, [loadOrders]);
 
+  const handleUpdateStatus = async (orderId, nextStatus) => {
+    setUpdatingId(orderId);
+    try {
+      const updated = await api(`/api/orders/${encodeURIComponent(orderId)}/status`, {
+        token,
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: updated.status || nextStatus } : o))
+      );
+    } catch (err) {
+      setError(err.message || (isId ? 'Gagal memperbarui status' : 'Failed to update status'));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   if (!token) {
     return (
       <View style={styles.centerBox}>
@@ -70,6 +94,15 @@ export default function OrdersScreen({ token, lang, onGoLogin }) {
     );
   }
 
+  const visibleOrders = isAdmin
+    ? orders.filter((o) => {
+        const s = String(o.status || 'New');
+        if (adminFilter === 'Active') return s !== 'Completed' && s !== 'Cancelled';
+        if (adminFilter === 'Completed') return s === 'Completed';
+        return true;
+      })
+    : orders;
+
   return (
     <ScrollView
       style={styles.container}
@@ -83,9 +116,25 @@ export default function OrdersScreen({ token, lang, onGoLogin }) {
       }
     >
       <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.eyebrow}>{isId ? 'RIWAYAT PESANAN' : 'ORDER HISTORY'}</Text>
-          <Text style={styles.title}>{isId ? 'Pesanan Saya' : 'My Orders'}</Text>
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <Text style={styles.eyebrow}>
+            {isAdmin
+              ? isId
+                ? 'PANEL ADMIN · ANTREAN PESANAN'
+                : 'ADMIN PANEL · ORDERS QUEUE'
+              : isId
+              ? 'RIWAYAT PESANAN'
+              : 'ORDER HISTORY'}
+          </Text>
+          <Text style={styles.title}>
+            {isAdmin
+              ? isId
+                ? 'Pesanan Pelanggan'
+                : 'Customer Orders'
+              : isId
+              ? 'Pesanan Saya'
+              : 'My Orders'}
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.refreshBtn}
@@ -95,6 +144,22 @@ export default function OrdersScreen({ token, lang, onGoLogin }) {
           <Text style={styles.refreshBtnText}>{isId ? 'Muat ulang' : 'Refresh'}</Text>
         </TouchableOpacity>
       </View>
+
+      {isAdmin ? (
+        <View style={styles.filterRow}>
+          {['Active', 'Completed', 'All'].map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.filterPill, adminFilter === f && styles.filterPillActive]}
+              onPress={() => setAdminFilter(f)}
+            >
+              <Text style={[styles.filterText, adminFilter === f && styles.filterTextActive]}>
+                {f}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
       {loading && !refreshing ? (
         <View style={styles.stateBox}>
@@ -112,20 +177,24 @@ export default function OrdersScreen({ token, lang, onGoLogin }) {
         </View>
       ) : null}
 
-      {!loading && !error && orders.length === 0 ? (
+      {!loading && !error && visibleOrders.length === 0 ? (
         <View style={styles.stateBox}>
           <Text style={styles.emptyTitle}>
-            {isId ? 'Belum ada pesanan' : 'No orders yet'}
+            {isId ? 'Belum ada pesanan' : 'No orders found'}
           </Text>
           <Text style={styles.mutedText}>
-            {isId
+            {isAdmin
+              ? isId
+                ? 'Tidak ada pesanan pada filter ini.'
+                : 'No customer orders match this filter.'
+              : isId
               ? 'Pesanan yang Anda buat dari menu akan muncul di sini.'
               : 'Orders you place from the menu will appear here.'}
           </Text>
         </View>
       ) : null}
 
-      {orders.map((order) => {
+      {visibleOrders.map((order) => {
         const badge = getStatusColors(order.status);
         const items = Array.isArray(order.items) ? order.items : [];
         return (
@@ -133,6 +202,12 @@ export default function OrdersScreen({ token, lang, onGoLogin }) {
             <View style={styles.cardTop}>
               <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={styles.orderCode}>{order.id}</Text>
+                {isAdmin && (order.customer || order.username) ? (
+                  <Text style={styles.customerName}>
+                    {order.customer || 'Guest'}
+                    {order.username ? ` (@${order.username})` : ''}
+                  </Text>
+                ) : null}
                 <Text style={styles.orderMeta}>
                   {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
                 </Text>
@@ -178,6 +253,33 @@ export default function OrdersScreen({ token, lang, onGoLogin }) {
               <Text style={styles.totalLabel}>{isId ? 'Total' : 'Total'}</Text>
               <Text style={styles.totalValue}>{formatRupiah(order.total)}</Text>
             </View>
+
+            {isAdmin ? (
+              <View style={styles.adminActions}>
+                <Text style={styles.adminActionLabel}>
+                  {isId ? 'Ubah Status:' : 'Update Status:'}
+                </Text>
+                <View style={styles.statusBtnsRow}>
+                  {STATUS_OPTIONS.map((st) => {
+                    const active = order.status === st;
+                    return (
+                      <TouchableOpacity
+                        key={st}
+                        style={[styles.statusBtn, active && styles.statusBtnActive]}
+                        onPress={() => handleUpdateStatus(order.id, st)}
+                        disabled={active || updatingId === order.id}
+                      >
+                        <Text
+                          style={[styles.statusBtnText, active && styles.statusBtnTextActive]}
+                        >
+                          {st}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
           </View>
         );
       })}
@@ -199,7 +301,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   eyebrow: {
     fontSize: 11,
@@ -220,6 +322,20 @@ const styles = StyleSheet.create({
     borderColor: COLORS.line,
   },
   refreshBtnText: { color: COLORS.ink, fontWeight: '600', fontSize: 13 },
+  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  filterPill: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  filterPillActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  filterText: { fontSize: 13, fontWeight: '600', color: COLORS.ink },
+  filterTextActive: { color: '#fff' },
   stateBox: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: COLORS.ink },
   mutedText: { fontSize: 14, color: COLORS.muted, textAlign: 'center', marginTop: 6 },
@@ -260,6 +376,7 @@ const styles = StyleSheet.create({
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   orderCode: { fontSize: 14, fontWeight: '700', color: COLORS.ink },
+  customerName: { fontSize: 13, fontWeight: '600', color: COLORS.accent, marginTop: 2 },
   orderMeta: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   badgeText: { fontSize: 12, fontWeight: '700' },
@@ -277,4 +394,25 @@ const styles = StyleSheet.create({
   },
   totalLabel: { fontSize: 14, fontWeight: '700', color: COLORS.ink },
   totalValue: { fontSize: 16, fontWeight: '800', color: COLORS.accent },
+  adminActions: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.line,
+  },
+  adminActionLabel: { fontSize: 12, fontWeight: '700', color: COLORS.muted, marginBottom: 8 },
+  statusBtnsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  statusBtn: {
+    minHeight: 38,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: COLORS.soft,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  statusBtnActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  statusBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.ink },
+  statusBtnTextActive: { color: '#fff' },
 });

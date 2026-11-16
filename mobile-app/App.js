@@ -84,16 +84,17 @@ export default function App() {
     );
   };
 
-  const handleAddToCart = (dish) => {
-    if (!dish?.id) return;
+  const handleAddToCart = (dishOrId) => {
+    const id = typeof dishOrId === 'object' ? dishOrId?.id : dishOrId;
+    if (!id) return;
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === dish.id);
+      const existing = prev.find((item) => item.id === id);
       if (existing) {
         return prev.map((item) =>
-          item.id === dish.id ? { ...item, qty: item.qty + 1 } : item
+          item.id === id ? { ...item, qty: item.qty + 1 } : item
         );
       }
-      return [...prev, { id: dish.id, qty: 1 }];
+      return [...prev, { id, qty: 1 }];
     });
   };
 
@@ -109,11 +110,13 @@ export default function App() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
+  const isAdmin = user?.role === 'administrator';
+
   const tabs = [
-    { key: 'menu', label: isId ? 'Menu' : 'Menu' },
+    { key: 'menu', label: 'Menu' },
     { key: 'orders', label: isId ? 'Pesanan' : 'Orders' },
     { key: 'reviews', label: isId ? 'Ulasan' : 'Reviews' },
-    { key: 'ai', label: 'AI' },
+    { key: 'ai', label: isAdmin ? (isId ? 'Koki' : 'Chef') : 'AI' },
     { key: 'account', label: isId ? 'Akun' : 'Account' },
   ];
 
