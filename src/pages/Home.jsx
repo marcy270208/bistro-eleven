@@ -228,6 +228,11 @@ const Home = ({ dishes, dishesLoading, dishesError, onRetryDishes, addToCart, us
             )}
           </h2>
         </div>
+        <p className="story-note">
+          {isId
+            ? 'Dimasak segar setiap hari dari bahan pilihan — siap dinikmati di tempat maupun diantar hangat.'
+            : 'Freshly prepared every day with seasonal ingredients — crafted for both dine-in and warm delivery.'}
+        </p>
       </section>
 
       <section className="reviews-section" id="reviews">

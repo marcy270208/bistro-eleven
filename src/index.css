@@ -1952,8 +1952,29 @@ footer {
 }
 
 .story {
-    background: var(--soft) !important;
+    background: #ede3d5 !important;
     color: var(--ink) !important;
+    border-top: 1px solid #dfd2c0;
+    border-bottom: 1px solid #dfd2c0;
+}
+.dark-theme .story {
+    background: #241b16 !important;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+.story-note {
+    margin-left: auto;
+    max-width: 340px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--muted);
+    text-align: right;
+}
+@media (max-width: 760px) {
+    .story-note {
+        margin-left: 0;
+        text-align: left;
+    }
 }
 
 td, th, .cart-line {
