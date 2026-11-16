@@ -109,21 +109,6 @@ const Home = ({ dishes, dishesLoading, dishesError, onRetryDishes, addToCart, us
             {isId ? 'Jelajahi menu' : 'Explore the menu'} <span>&darr;</span>
           </button>
         </div>
-        <div className="hero-note">
-          {isId ? (
-            <>
-              DIBUAT SEGAR
-              <br />
-              <b>SETIAP HARI</b>
-            </>
-          ) : (
-            <>
-              FRESHLY MADE
-              <br />
-              <b>EVERY DAY</b>
-            </>
-          )}
-        </div>
       </section>
 
       <section className="menu-section" id="menu">
