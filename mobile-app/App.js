@@ -27,7 +27,6 @@ export default function App() {
   const [dishesLoading, setDishesLoading] = useState(true);
   const [dishesError, setDishesError] = useState('');
 
-  const [favorites, setFavorites] = useState([]);
   const [cart, setCart] = useState([]); // [{ id, qty }]
   const [selectedDish, setSelectedDish] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -93,12 +92,6 @@ export default function App() {
 
   const colors = getColors(isDark);
   const isAdmin = user?.role === 'administrator';
-
-  const handleToggleFavorite = (dishId) => {
-    setFavorites((prev) =>
-      prev.includes(dishId) ? prev.filter((id) => id !== dishId) : [...prev, dishId]
-    );
-  };
 
   const handleAddToCart = (dishOrId) => {
     const id = typeof dishOrId === 'object' ? dishOrId?.id : dishOrId;
@@ -198,8 +191,6 @@ export default function App() {
               onRetry={loadDishes}
               onSelectDish={setSelectedDish}
               onAddToCart={handleAddToCart}
-              favorites={favorites}
-              onToggleFavorite={handleToggleFavorite}
               isId={isId}
               colors={colors}
             />

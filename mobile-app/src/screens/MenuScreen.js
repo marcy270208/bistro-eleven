@@ -24,22 +24,17 @@ export default function MenuScreen({
   onRetry,
   onSelectDish,
   onAddToCart,
-  favorites,
-  onToggleFavorite,
   isId,
   colors: propColors,
 }) {
   const colors = propColors || COLORS;
   const listRef = useRef(null);
   const [search, setSearch] = useState('');
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const isDark = colors.paper !== '#fff8f0';
 
-  const filtered = dishes.filter((d) => {
-    const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = !favoritesOnly || favorites.includes(d.id);
-    return matchesSearch && matchesFilter;
-  });
+  const filtered = dishes.filter((d) =>
+    d.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (loading && dishes.length === 0) {
     return (
@@ -86,24 +81,10 @@ export default function MenuScreen({
               />
               {search ? (
                 <TouchableOpacity onPress={() => setSearch('')} style={styles.clearSearchBtn}>
-                  <Ionicons name="close-circle" size={18} color={COLORS.muted} />
+                  <Ionicons name="close-circle" size={18} color={colors.muted} />
                 </TouchableOpacity>
               ) : null}
             </View>
-            <TouchableOpacity
-              style={[
-                styles.favFilterBtn,
-                { backgroundColor: favoritesOnly ? colors.accent : colors.surface, borderColor: favoritesOnly ? colors.accent : colors.line },
-              ]}
-              onPress={() => setFavoritesOnly((prev) => !prev)}
-              accessibilityLabel="Toggle favorites filter"
-            >
-              <Ionicons
-                name={favoritesOnly ? 'heart' : 'heart-outline'}
-                size={20}
-                color={favoritesOnly ? '#ffffff' : colors.accent}
-              />
-            </TouchableOpacity>
           </View>
 
           {/* Hero Banner matching Web Desktop */}
@@ -163,28 +144,13 @@ export default function MenuScreen({
       }
       ListEmptyComponent={
         <View style={styles.centerBox}>
-          <Ionicons name="restaurant-outline" size={36} color={COLORS.muted} />
+          <Ionicons name="restaurant-outline" size={36} color={colors.muted} />
           <Text style={styles.emptyTitle}>
-            {favoritesOnly
-              ? isId
-                ? 'Belum ada menu favorit.'
-                : 'No favorite dishes yet.'
-              : isId
-              ? 'Menu tidak ditemukan.'
-              : 'No dishes found.'}
+            {isId ? 'Menu tidak ditemukan.' : 'No dishes found.'}
           </Text>
-          {favoritesOnly ? (
-            <TouchableOpacity style={styles.resetBtn} onPress={() => setFavoritesOnly(false)}>
-              <Text style={styles.resetBtnText}>
-                {isId ? 'Lihat semua menu' : 'Browse full menu'}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
       }
-      renderItem={({ item }) => {
-        const isFav = favorites.includes(item.id);
-        return (
+      renderItem={({ item }) => (
           <TouchableOpacity
             style={[
               styles.card,
@@ -202,22 +168,9 @@ export default function MenuScreen({
             </View>
 
             <View style={styles.cardBody}>
-              <View style={styles.cardTopRow}>
-                <Text style={[styles.dishName, { color: colors.ink }]} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <TouchableOpacity
-                  style={styles.heartBtn}
-                  onPress={() => onToggleFavorite(item.id)}
-                  accessibilityLabel="Toggle favorite"
-                >
-                  <Ionicons
-                    name={isFav ? 'heart' : 'heart-outline'}
-                    size={18}
-                    color={isFav ? colors.accent : colors.muted}
-                  />
-                </TouchableOpacity>
-              </View>
+              <Text style={[styles.dishName, { color: colors.ink }]} numberOfLines={1}>
+                {item.name}
+              </Text>
 
               <Text style={[styles.dishDesc, { color: colors.muted }]} numberOfLines={2}>
                 {item.description}
@@ -236,8 +189,7 @@ export default function MenuScreen({
               </View>
             </View>
           </TouchableOpacity>
-        );
-      }}
+      )}
     />
   );
 }
