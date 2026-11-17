@@ -32,21 +32,14 @@ export default function MenuScreen({
   const colors = propColors || COLORS;
   const listRef = useRef(null);
   const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'favorites' | 'budget'
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const isDark = colors.paper !== '#fff8f0';
 
   const filtered = dishes.filter((d) => {
     const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter =
-      activeFilter === 'favorites'
-        ? favorites.includes(d.id)
-        : activeFilter === 'budget'
-        ? Number(d.price) <= 30000
-        : true;
+    const matchesFilter = !favoritesOnly || favorites.includes(d.id);
     return matchesSearch && matchesFilter;
   });
-
-  const featuredDish = dishes[0] || null;
 
   if (loading && dishes.length === 0) {
     return (
@@ -56,12 +49,6 @@ export default function MenuScreen({
       </View>
     );
   }
-
-  const filterChips = [
-    { key: 'all', label: isId ? 'Semua Menu' : 'All Dishes' },
-    { key: 'favorites', label: isId ? 'Favorit' : 'Favorites' },
-    { key: 'budget', label: isId ? 'Di Bawah 30rb' : 'Under Rp 30k' },
-  ];
 
   return (
     <FlatList
@@ -106,17 +93,15 @@ export default function MenuScreen({
             <TouchableOpacity
               style={[
                 styles.favFilterBtn,
-                activeFilter === 'favorites' && styles.favFilterBtnActive,
+                { backgroundColor: favoritesOnly ? colors.accent : colors.surface, borderColor: favoritesOnly ? colors.accent : colors.line },
               ]}
-              onPress={() =>
-                setActiveFilter((prev) => (prev === 'favorites' ? 'all' : 'favorites'))
-              }
+              onPress={() => setFavoritesOnly((prev) => !prev)}
               accessibilityLabel="Toggle favorites filter"
             >
               <Ionicons
-                name={activeFilter === 'favorites' ? 'heart' : 'heart-outline'}
+                name={favoritesOnly ? 'heart' : 'heart-outline'}
                 size={20}
-                color={activeFilter === 'favorites' ? '#ffffff' : COLORS.accent}
+                color={favoritesOnly ? '#ffffff' : colors.accent}
               />
             </TouchableOpacity>
           </View>
@@ -134,8 +119,8 @@ export default function MenuScreen({
                   styles.heroOverlay,
                   {
                     backgroundColor: isDark
-                      ? 'rgba(23, 17, 13, 0.62)'
-                      : 'rgba(255, 248, 240, 0.54)',
+                      ? 'rgba(23, 17, 13, 0.72)'
+                      : 'rgba(255, 250, 244, 0.72)',
                   },
                 ]}
               >
@@ -166,24 +151,6 @@ export default function MenuScreen({
             </ImageBackground>
           ) : null}
 
-          {/* Filter Pills */}
-          <View style={styles.chipRow}>
-            {filterChips.map((chip) => {
-              const active = activeFilter === chip.key;
-              return (
-                <TouchableOpacity
-                  key={chip.key}
-                  style={[styles.filterChip, active && styles.filterChipActive]}
-                  onPress={() => setActiveFilter(chip.key)}
-                >
-                  <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
-                    {chip.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
           {error ? (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>{error}</Text>
@@ -198,7 +165,7 @@ export default function MenuScreen({
         <View style={styles.centerBox}>
           <Ionicons name="restaurant-outline" size={36} color={COLORS.muted} />
           <Text style={styles.emptyTitle}>
-            {activeFilter === 'favorites'
+            {favoritesOnly
               ? isId
                 ? 'Belum ada menu favorit.'
                 : 'No favorite dishes yet.'
@@ -206,8 +173,8 @@ export default function MenuScreen({
               ? 'Menu tidak ditemukan.'
               : 'No dishes found.'}
           </Text>
-          {activeFilter !== 'all' ? (
-            <TouchableOpacity style={styles.resetBtn} onPress={() => setActiveFilter('all')}>
+          {favoritesOnly ? (
+            <TouchableOpacity style={styles.resetBtn} onPress={() => setFavoritesOnly(false)}>
               <Text style={styles.resetBtnText}>
                 {isId ? 'Lihat semua menu' : 'Browse full menu'}
               </Text>
@@ -359,19 +326,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  chipRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  filterChip: {
-    minHeight: 38,
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    borderRadius: 999,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  filterChipActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
-  filterChipText: { fontSize: 12, fontWeight: '600', color: COLORS.ink },
-  filterChipTextActive: { color: '#ffffff', fontWeight: '700' },
   errorBanner: {
     marginBottom: 12,
     padding: 12,
