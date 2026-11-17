@@ -81,7 +81,7 @@ export default function SideDrawer({
     {
       key: 'menu',
       icon: 'restaurant-outline',
-      label: 'Menu',
+      label: isAdmin && activeTab === 'admin' ? (isId ? 'Restoran' : 'Restaurant') : 'Menu',
       onPress: () => handleClose(() => onSelectTab('menu')),
     },
     ...(isAdmin

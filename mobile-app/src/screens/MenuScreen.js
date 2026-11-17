@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  ImageBackground,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -12,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, formatRupiah } from '../theme';
+
+const HERO_IMG = require('../../assets/hero-home.jpeg');
 
 export default function MenuScreen({
   dishes,
@@ -26,8 +30,10 @@ export default function MenuScreen({
   colors: propColors,
 }) {
   const colors = propColors || COLORS;
+  const listRef = useRef(null);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'favorites' | 'budget'
+  const isDark = colors.paper !== '#fff8f0';
 
   const filtered = dishes.filter((d) => {
     const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase());
@@ -59,6 +65,7 @@ export default function MenuScreen({
 
   return (
     <FlatList
+      ref={listRef}
       data={filtered}
       keyExtractor={(item) => String(item.id)}
       contentContainerStyle={styles.listContent}
@@ -114,40 +121,49 @@ export default function MenuScreen({
             </TouchableOpacity>
           </View>
 
-          {/* Featured Dark Espresso Promo Banner (Foodie Express style) */}
-          {featuredDish && !search ? (
-            <TouchableOpacity
-              style={styles.promoCard}
-              activeOpacity={0.9}
-              onPress={() => onSelectDish(featuredDish)}
+          {/* Hero Banner matching Web Desktop */}
+          {!search ? (
+            <ImageBackground
+              source={HERO_IMG}
+              style={styles.heroCard}
+              imageStyle={styles.heroImg}
+              resizeMode="cover"
             >
-              <View style={styles.promoLeft}>
-                <View style={styles.promoBadge}>
-                  <Text style={styles.promoBadgeText}>
-                    {isId ? 'SPESIAL HARI INI' : "CHEF'S SPECIAL"}
-                  </Text>
-                </View>
-                <Text style={styles.promoTitle} numberOfLines={2}>
-                  {featuredDish.name}
+              <View
+                style={[
+                  styles.heroOverlay,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(23, 17, 13, 0.72)'
+                      : 'rgba(255, 248, 240, 0.76)',
+                  },
+                ]}
+              >
+                <Text style={[styles.heroEyebrow, { color: colors.muted }]}>
+                  {isId ? 'MAKANAN LEZAT · SUASANA HANGAT' : 'GOOD FOOD · WARM MOOD'}
                 </Text>
-                <Text style={styles.promoSub}>
-                  {isId ? 'Dimasak segar setiap hari' : 'Freshly made every day'} ·{' '}
-                  {formatRupiah(featuredDish.price)}
-                </Text>
-                <View style={styles.promoCta}>
-                  <Text style={styles.promoCtaText}>
-                    {isId ? 'Pesan Sekarang' : 'Order Now'}
+                <Text style={[styles.heroTitle, { color: colors.ink }]}>
+                  {isId ? 'Dibuat untuk\n' : 'Made for\n'}
+                  <Text style={styles.heroTitleItalic}>
+                    {isId ? 'momen terbaik.' : 'great moments.'}
                   </Text>
-                </View>
+                </Text>
+                <Text style={[styles.heroCopy, { color: colors.ink }]}>
+                  {isId
+                    ? 'Bahan-bahan segar, hidangan favorit yang menenangkan, dan meja yang selalu siap untukmu di Bistro Eleven.'
+                    : 'Fresh ingredients, comforting favorites, and a table always ready for you at Bistro Eleven.'}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.heroBtn, { backgroundColor: colors.accent }]}
+                  activeOpacity={0.85}
+                  onPress={() => listRef.current?.scrollToOffset({ offset: 300, animated: true })}
+                >
+                  <Text style={styles.heroBtnText}>
+                    {isId ? 'Jelajahi menu  ↓' : 'Explore menu  ↓'}
+                  </Text>
+                </TouchableOpacity>
               </View>
-              {featuredDish.image ? (
-                <Image
-                  source={{ uri: featuredDish.image }}
-                  style={styles.promoImage}
-                  resizeMode="cover"
-                />
-              ) : null}
-            </TouchableOpacity>
+            </ImageBackground>
           ) : null}
 
           {/* Filter Pills */}
@@ -296,40 +312,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   favFilterBtnActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
-  promoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2b1810',
+  heroCard: {
     borderRadius: 20,
-    padding: 16,
+    overflow: 'hidden',
     marginBottom: 14,
-    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.line,
   },
-  promoLeft: { flex: 1 },
-  promoBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(207, 115, 62, 0.24)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
+  heroImg: {
+    borderRadius: 20,
+  },
+  heroOverlay: {
+    padding: 18,
+  },
+  heroEyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.4,
     marginBottom: 6,
   },
-  promoBadgeText: { fontSize: 10, fontWeight: '800', color: '#f5a373', letterSpacing: 0.8 },
-  promoTitle: { fontSize: 18, fontWeight: '800', color: '#ffffff', lineHeight: 22 },
-  promoSub: { fontSize: 12, color: '#d7c5b6', marginTop: 4, marginBottom: 10 },
-  promoCta: {
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    lineHeight: 31,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    marginBottom: 8,
+  },
+  heroTitleItalic: {
+    fontStyle: 'italic',
+    fontWeight: '700',
+  },
+  heroCopy: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 14,
+    opacity: 0.9,
+  },
+  heroBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
     borderRadius: 999,
   },
-  promoCtaText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
-  promoImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 16,
-    backgroundColor: '#3f2518',
+  heroBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   chipRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   filterChip: {
