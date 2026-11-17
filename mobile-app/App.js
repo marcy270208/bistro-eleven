@@ -286,6 +286,7 @@ export default function App() {
           onClose={() => setSelectedDish(null)}
           onAddToCart={handleAddToCart}
           isId={isId}
+          colors={colors}
         />
 
         <CartCheckoutModal
@@ -306,6 +307,7 @@ export default function App() {
             setTab('orders');
           }}
           isId={isId}
+          colors={colors}
         />
 
         <SideDrawer

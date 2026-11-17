@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Modal,
@@ -12,7 +12,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, formatRupiah } from '../theme';
 
-export default function DishDetailModal({ dish, onClose, onAddToCart, isId }) {
+export default function DishDetailModal({
+  dish,
+  onClose,
+  onAddToCart,
+  isId,
+  colors: propColors,
+}) {
+  const colors = propColors || COLORS;
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [qty, setQty] = useState(1);
 
   useEffect(() => {
@@ -37,7 +45,7 @@ export default function DishDetailModal({ dish, onClose, onAddToCart, isId }) {
               <Image source={{ uri: dish.image }} style={styles.heroImg} resizeMode="cover" />
             ) : (
               <View style={styles.heroPlaceholder}>
-                <Ionicons name="restaurant-outline" size={56} color={COLORS.muted} />
+                <Ionicons name="restaurant-outline" size={56} color={colors.muted} />
               </View>
             )}
             <TouchableOpacity
@@ -45,7 +53,7 @@ export default function DishDetailModal({ dish, onClose, onAddToCart, isId }) {
               onPress={onClose}
               accessibilityLabel="Back to menu"
             >
-              <Ionicons name="arrow-back" size={22} color={COLORS.ink} />
+              <Ionicons name="arrow-back" size={22} color={colors.ink} />
             </TouchableOpacity>
           </View>
 
@@ -92,14 +100,14 @@ export default function DishDetailModal({ dish, onClose, onAddToCart, isId }) {
               style={styles.stepBtn}
               onPress={() => setQty((q) => Math.max(1, q - 1))}
             >
-              <Ionicons name="remove" size={18} color={COLORS.ink} />
+              <Ionicons name="remove" size={18} color={colors.ink} />
             </TouchableOpacity>
             <Text style={styles.stepValue}>{qty}</Text>
             <TouchableOpacity
               style={styles.stepBtn}
               onPress={() => setQty((q) => q + 1)}
             >
-              <Ionicons name="add" size={18} color={COLORS.ink} />
+              <Ionicons name="add" size={18} color={colors.ink} />
             </TouchableOpacity>
           </View>
 
@@ -114,114 +122,117 @@ export default function DishDetailModal({ dish, onClose, onAddToCart, isId }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.paper },
-  flex: { flex: 1 },
-  heroWrap: {
-    height: 280,
-    backgroundColor: COLORS.soft,
-    position: 'relative',
-  },
-  heroImg: { width: '100%', height: '100%' },
-  heroPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  floatingBack: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 248, 240, 0.94)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.14,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  sheet: {
-    marginTop: -24,
-    backgroundColor: COLORS.paper,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 28,
-  },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    color: COLORS.accent,
-    marginBottom: 4,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 10,
-  },
-  title: { fontSize: 24, fontWeight: '800', color: COLORS.ink, flex: 1 },
-  price: { fontSize: 20, fontWeight: '800', color: COLORS.accent },
-  description: { fontSize: 14, color: COLORS.muted, lineHeight: 22, marginBottom: 20 },
-  ingredientsBox: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.ink, marginBottom: 10 },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    backgroundColor: COLORS.soft,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-  },
-  chipText: { fontSize: 12, fontWeight: '600', color: COLORS.ink },
-  muted: { fontSize: 13, color: COLORS.muted },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.soft,
-    borderRadius: 999,
-    paddingHorizontal: 6,
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  stepBtn: {
-    width: 38,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepValue: {
-    minWidth: 26,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.ink,
-  },
-  ctaBtn: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 999,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  ctaText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.paper },
+    flex: { flex: 1 },
+    heroWrap: {
+      height: 280,
+      backgroundColor: colors.soft,
+      position: 'relative',
+    },
+    heroImg: { width: '100%', height: '100%' },
+    heroPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    floatingBack: {
+      position: 'absolute',
+      top: 14,
+      left: 14,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOpacity: 0.16,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    sheet: {
+      marginTop: -24,
+      backgroundColor: colors.paper,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 20,
+      paddingTop: 24,
+      paddingBottom: 28,
+    },
+    eyebrow: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.4,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 10,
+    },
+    title: { fontSize: 24, fontWeight: '800', color: colors.ink, flex: 1 },
+    price: { fontSize: 20, fontWeight: '800', color: colors.accent },
+    description: { fontSize: 14, color: colors.muted, lineHeight: 22, marginBottom: 20 },
+    ingredientsBox: {
+      backgroundColor: colors.surface,
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.line,
+    },
+    sectionTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, marginBottom: 10 },
+    chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      backgroundColor: colors.soft,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
+    },
+    chipText: { fontSize: 12, fontWeight: '600', color: colors.ink },
+    muted: { fontSize: 13, color: colors.muted },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      padding: 16,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.line,
+    },
+    stepper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.soft,
+      borderRadius: 999,
+      paddingHorizontal: 6,
+      minHeight: 48,
+      borderWidth: 1,
+      borderColor: colors.line,
+    },
+    stepBtn: {
+      width: 38,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepValue: {
+      minWidth: 26,
+      textAlign: 'center',
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.ink,
+    },
+    ctaBtn: {
+      flex: 1,
+      minHeight: 48,
+      borderRadius: 999,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    ctaText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  });
