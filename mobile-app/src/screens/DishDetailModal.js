@@ -1,73 +1,111 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Modal,
-  View,
-  Text,
   Image,
-  TouchableOpacity,
+  Modal,
   ScrollView,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, formatRupiah } from '../theme';
 
 export default function DishDetailModal({ dish, onClose, onAddToCart, isId }) {
+  const [qty, setQty] = useState(1);
+
+  useEffect(() => {
+    setQty(1);
+  }, [dish?.id]);
+
   if (!dish) return null;
+
+  const handleAdd = () => {
+    for (let i = 0; i < qty; i += 1) {
+      onAddToCart(dish.id);
+    }
+    onClose();
+  };
 
   return (
     <Modal visible={Boolean(dish)} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backBtn} onPress={onClose}>
-            <Text style={styles.backBtnText}>← {isId ? 'Kembali' : 'Back'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.topTitle}>{isId ? 'Detail Menu' : 'Dish Details'}</Text>
-          <View style={{ width: 70 }} />
-        </View>
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.imageCard}>
-            <Image source={{ uri: dish.image }} style={styles.image} resizeMode="contain" />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <ScrollView style={styles.flex} bounces={false}>
+          <View style={styles.heroWrap}>
+            {dish.image ? (
+              <Image source={{ uri: dish.image }} style={styles.heroImg} resizeMode="cover" />
+            ) : (
+              <View style={styles.heroPlaceholder}>
+                <Ionicons name="restaurant-outline" size={56} color={COLORS.muted} />
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.floatingBack}
+              onPress={onClose}
+              accessibilityLabel="Back to menu"
+            >
+              <Ionicons name="arrow-back" size={22} color={COLORS.ink} />
+            </TouchableOpacity>
           </View>
 
-          <Text style={styles.eyebrow}>{isId ? 'DARI DAPUR KAMI' : 'FROM OUR KITCHEN'}</Text>
-          <Text style={styles.title}>{dish.name}</Text>
-          <Text style={styles.price}>{formatRupiah(dish.price)}</Text>
-          <Text style={styles.description}>
-            {dish.description ||
-              (isId
-                ? 'Dibuat segar setiap hari di dapur Bistro Eleven.'
-                : 'Freshly made in the Bistro Eleven kitchen.')}
-          </Text>
+          <View style={styles.sheet}>
+            <Text style={styles.eyebrow}>{isId ? 'DARI DAPUR KAMI' : 'FROM OUR KITCHEN'}</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{dish.name}</Text>
+              <Text style={styles.price}>{formatRupiah(dish.price)}</Text>
+            </View>
 
-          <View style={styles.ingredientsBox}>
-            <Text style={styles.sectionTitle}>{isId ? 'Komposisi Bahan' : 'Ingredients'}</Text>
-            {Array.isArray(dish.ingredients) && dish.ingredients.length > 0 ? (
-              <View style={styles.chipsWrap}>
-                {dish.ingredients.map((ing, idx) => (
-                  <View key={`${ing}-${idx}`} style={styles.chip}>
-                    <Text style={styles.chipText}>{ing}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={styles.muted}>
-                {isId ? 'Daftar bahan belum ditambahkan.' : 'Ingredients have not been added yet.'}
+            <Text style={styles.description}>
+              {dish.description ||
+                (isId
+                  ? 'Disiapkan segar di dapur Bistro Eleven.'
+                  : 'Freshly made in the Bistro Eleven kitchen.')}
+            </Text>
+
+            <View style={styles.ingredientsBox}>
+              <Text style={styles.sectionTitle}>
+                {isId ? 'Komposisi Bahan' : 'Ingredients'}
               </Text>
-            )}
+              {Array.isArray(dish.ingredients) && dish.ingredients.length > 0 ? (
+                <View style={styles.chipsWrap}>
+                  {dish.ingredients.map((ing, idx) => (
+                    <View key={`${ing}-${idx}`} style={styles.chip}>
+                      <Text style={styles.chipText}>{ing}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.muted}>
+                  {isId
+                    ? 'Daftar bahan belum ditambahkan.'
+                    : 'Ingredients have not been added yet.'}
+                </Text>
+              )}
+            </View>
           </View>
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.ctaBtn}
-            onPress={() => {
-              onAddToCart(dish.id);
-              onClose();
-            }}
-          >
+          <View style={styles.stepper}>
+            <TouchableOpacity
+              style={styles.stepBtn}
+              onPress={() => setQty((q) => Math.max(1, q - 1))}
+            >
+              <Ionicons name="remove" size={18} color={COLORS.ink} />
+            </TouchableOpacity>
+            <Text style={styles.stepValue}>{qty}</Text>
+            <TouchableOpacity
+              style={styles.stepBtn}
+              onPress={() => setQty((q) => q + 1)}
+            >
+              <Ionicons name="add" size={18} color={COLORS.ink} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.ctaBtn} onPress={handleAdd}>
             <Text style={styles.ctaText}>
-              {isId ? 'Tambah ke Keranjang +' : 'Add to Cart +'}
+              {isId ? 'Tambah' : 'Add to Cart'} · {formatRupiah((Number(dish.price) || 0) * qty)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -77,125 +115,113 @@ export default function DishDetailModal({ dish, onClose, onAddToCart, isId }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.paper,
+  safeArea: { flex: 1, backgroundColor: COLORS.paper },
+  flex: { flex: 1 },
+  heroWrap: {
+    height: 280,
+    backgroundColor: COLORS.soft,
+    position: 'relative',
   },
-  topBar: {
-    flexDirection: 'row',
+  heroImg: { width: '100%', height: '100%' },
+  heroPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  floatingBack: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 248, 240, 0.94)',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.line,
-  },
-  backBtn: {
-    minHeight: 44,
     justifyContent: 'center',
-    paddingRight: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  backBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.accent,
-  },
-  topTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.ink,
-  },
-  content: {
-    padding: 18,
-  },
-  imageCard: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    height: 230,
-    padding: 18,
-    marginBottom: 18,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
+  sheet: {
+    marginTop: -24,
+    backgroundColor: COLORS.paper,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 28,
   },
   eyebrow: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1.4,
     color: COLORS.accent,
     marginBottom: 4,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: COLORS.ink,
-    marginBottom: 6,
-  },
-  price: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.accent,
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: COLORS.muted,
-    marginBottom: 20,
-  },
-  ingredientsBox: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.ink,
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
     marginBottom: 10,
   },
-  chipsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    backgroundColor: COLORS.paper,
+  title: { fontSize: 24, fontWeight: '800', color: COLORS.ink, flex: 1 },
+  price: { fontSize: 20, fontWeight: '800', color: COLORS.accent },
+  description: { fontSize: 14, color: COLORS.muted, lineHeight: 22, marginBottom: 20 },
+  ingredientsBox: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.line,
-    borderRadius: 999,
+  },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.ink, marginBottom: 10 },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    backgroundColor: COLORS.soft,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
+    borderRadius: 999,
   },
-  chipText: {
-    fontSize: 13,
-    color: COLORS.ink,
-  },
-  muted: {
-    color: COLORS.muted,
-    fontSize: 13,
-  },
+  chipText: { fontSize: 12, fontWeight: '600', color: COLORS.ink },
+  muted: { fontSize: 13, color: COLORS.muted },
   footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     padding: 16,
+    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.line,
-    backgroundColor: COLORS.surface,
   },
-  ctaBtn: {
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.soft,
+    borderRadius: 999,
+    paddingHorizontal: 6,
     minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.accent,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  stepBtn: {
+    width: 38,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaText: {
-    color: '#fff',
+  stepValue: {
+    minWidth: 26,
+    textAlign: 'center',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: COLORS.ink,
   },
+  ctaBtn: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 999,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  ctaText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

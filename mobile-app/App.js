@@ -101,12 +101,10 @@ export default function App() {
     });
   };
 
-  const handleUpdateQty = (dishId, delta) => {
+  const handleUpdateQty = (dishId, nextQty) => {
     setCart((prev) =>
       prev
-        .map((item) =>
-          item.id === dishId ? { ...item, qty: item.qty + delta } : item
-        )
+        .map((item) => (item.id === dishId ? { ...item, qty: nextQty } : item))
         .filter((item) => item.qty > 0)
     );
   };

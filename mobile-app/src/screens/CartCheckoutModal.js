@@ -3,6 +3,7 @@ import {
   Modal,
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../lib/api';
 import { COLORS, formatRupiah } from '../theme';
 
@@ -183,9 +185,38 @@ export default function CartCheckoutModal({
                   </Text>
                   {cartItems.map((item) => (
                     <View key={item.id} style={styles.cartRow}>
+                      {item.image ? (
+                        <Image
+                          source={{ uri: item.image }}
+                          style={{
+                            width: 54,
+                            height: 54,
+                            borderRadius: 12,
+                            backgroundColor: COLORS.soft,
+                            marginRight: 10,
+                          }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View
+                          style={{
+                            width: 54,
+                            height: 54,
+                            borderRadius: 12,
+                            backgroundColor: COLORS.soft,
+                            marginRight: 10,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Ionicons name="fast-food-outline" size={22} color={COLORS.muted} />
+                        </View>
+                      )}
                       <View style={{ flex: 1 }}>
                         <Text style={styles.cartItemName}>{item.name}</Text>
-                        <Text style={styles.muted}>{formatRupiah(item.price)}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.accent }}>
+                          {formatRupiah(item.price)}
+                        </Text>
                       </View>
                       <View style={styles.qtyGroup}>
                         <TouchableOpacity
