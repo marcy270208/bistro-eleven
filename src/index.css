@@ -3221,7 +3221,11 @@ input, select, textarea, .status-select {
     cursor: pointer;
 }
 .badge-status {
-    padding: 5px 11px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    padding: 5px 12px !important;
     border-radius: 999px !important;
     font-size: 11px !important;
     letter-spacing: 0.3px;

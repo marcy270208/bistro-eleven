@@ -731,13 +731,13 @@ const Dashboard = ({ user, token, orders, setOrders, dishes, setDishes }) => {
                       </div>
                     )}
                   </td>
-                  <td>Rp {order.total.toLocaleString('id-ID')}</td>
-                  <td>
+                  <td style={{ whiteSpace: 'nowrap' }}>Rp {order.total.toLocaleString('id-ID')}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
                     <span className={`badge-status bg-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>
                       {order.status}
                     </span>
                   </td>
-                  <td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
                     {isAdmin ? (
                       <select
                         className="status-select"
