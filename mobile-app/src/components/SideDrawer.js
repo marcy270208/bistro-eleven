@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
+  Easing,
   Image,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -45,7 +47,8 @@ export default function SideDrawer({
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 220,
+          duration: 240,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
@@ -64,7 +67,8 @@ export default function SideDrawer({
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: -DRAWER_WIDTH,
-        duration: 180,
+        duration: 190,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
@@ -77,6 +81,18 @@ export default function SideDrawer({
       if (typeof after === 'function') after();
     });
   };
+
+  const drawerSwipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gs) =>
+        gs.dx < -15 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.4,
+      onPanResponderRelease: (_evt, gs) => {
+        if (gs.dx < -40) {
+          handleClose();
+        }
+      },
+    })
+  ).current;
 
   const navItems = [
     {
@@ -153,6 +169,7 @@ export default function SideDrawer({
         </Animated.View>
 
         <Animated.View
+          {...drawerSwipeResponder.panHandlers}
           style={[
             styles.drawer,
             {

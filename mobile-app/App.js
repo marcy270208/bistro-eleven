@@ -1,6 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api, setUnauthorizedHandler } from './src/lib/api';
@@ -31,6 +40,40 @@ export default function App() {
   const [selectedDish, setSelectedDish] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const tabFade = useRef(new Animated.Value(1)).current;
+  const tabSlide = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    tabFade.setValue(0.35);
+    tabSlide.setValue(10);
+    Animated.parallel([
+      Animated.timing(tabFade, {
+        toValue: 1,
+        duration: 210,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(tabSlide, {
+        toValue: 0,
+        duration: 210,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [tab, tabFade, tabSlide]);
+
+  const edgeSwipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gs) =>
+        gs.dx > 18 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5,
+      onPanResponderRelease: (_evt, gs) => {
+        if (gs.dx > 45 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.3) {
+          setDrawerOpen(true);
+        }
+      },
+    })
+  ).current;
 
   const isId = lang === 'id';
 
@@ -187,7 +230,16 @@ export default function App() {
           </View>
         </View>
 
-        <View style={[styles.body, { backgroundColor: colors.paper }]}>
+        <View
+          style={[styles.body, { backgroundColor: colors.paper }]}
+          {...edgeSwipeResponder.panHandlers}
+        >
+          <Animated.View
+            style={[
+              styles.body,
+              { opacity: tabFade, transform: [{ translateY: tabSlide }] },
+            ]}
+          >
           {tab === 'menu' ? (
             <MenuScreen
               dishes={dishes}
@@ -260,6 +312,7 @@ export default function App() {
               colors={colors}
             />
           ) : null}
+          </Animated.View>
 
           {tab !== 'ai' && !cartOpen && !drawerOpen && !selectedDish ? (
             <TouchableOpacity
