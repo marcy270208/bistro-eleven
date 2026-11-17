@@ -84,6 +84,16 @@ export default function SideDrawer({
       label: 'Menu',
       onPress: () => handleClose(() => onSelectTab('menu')),
     },
+    ...(isAdmin
+      ? [
+          {
+            key: 'admin',
+            icon: 'shield-checkmark-outline',
+            label: isId ? 'Panel Admin' : 'Admin Panel',
+            onPress: () => handleClose(() => onSelectTab('admin')),
+          },
+        ]
+      : []),
     {
       key: 'orders',
       icon: 'receipt-outline',

@@ -14,6 +14,7 @@ import OrdersScreen from './src/screens/OrdersScreen';
 import ReviewsScreen from './src/screens/ReviewsScreen';
 import AiScreen from './src/screens/AiScreen';
 import AccountScreen from './src/screens/AccountScreen';
+import AdminPanelScreen from './src/screens/AdminPanelScreen';
 
 export default function App() {
   const [tab, setTab] = useState('menu'); // 'menu' | 'orders' | 'reviews' | 'ai' | 'account'
@@ -200,6 +201,18 @@ export default function App() {
               favorites={favorites}
               onToggleFavorite={handleToggleFavorite}
               isId={isId}
+              colors={colors}
+            />
+          ) : null}
+
+          {tab === 'admin' && isAdmin ? (
+            <AdminPanelScreen
+              token={token}
+              dishes={dishes}
+              onDishesChanged={loadDishes}
+              onGoOrders={() => setTab('orders')}
+              onGoChef={() => setTab('ai')}
+              lang={lang}
               colors={colors}
             />
           ) : null}

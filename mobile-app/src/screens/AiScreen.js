@@ -183,30 +183,45 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
         keyboardVerticalOffset={Platform.OS === 'ios' ? 95 : 85}
       >
         <ScrollView
-          style={styles.flex}
+          style={[styles.flex, { backgroundColor: colors.paper }]}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={loadingInq}
               onRefresh={loadInquiries}
-              tintColor={COLORS.accent}
+              tintColor={colors.accent}
             />
           }
         >
-          <View style={styles.headerCard}>
+          <View
+            style={[
+              styles.headerCard,
+              { backgroundColor: colors.surface, borderColor: colors.line },
+            ]}
+          >
             <View style={styles.inqHeader}>
               <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={styles.eyebrow}>KITCHEN DESK · HEAD CHEF</Text>
-                <Text style={styles.title}>
+                <Text style={[styles.eyebrow, { color: colors.accent }]}>
+                  KITCHEN DESK · HEAD CHEF
+                </Text>
+                <Text style={[styles.title, { color: colors.ink }]}>
                   {isId ? 'Pertanyaan Pelanggan' : 'Customer Inquiries'}
                 </Text>
               </View>
-              <TouchableOpacity style={styles.refreshBtn} onPress={loadInquiries}>
-                <Text style={styles.refreshBtnText}>{isId ? 'Muat ulang' : 'Refresh'}</Text>
+              <TouchableOpacity
+                style={[
+                  styles.refreshBtn,
+                  { backgroundColor: colors.soft, borderColor: colors.line },
+                ]}
+                onPress={loadInquiries}
+              >
+                <Text style={[styles.refreshBtnText, { color: colors.ink }]}>
+                  {isId ? 'Muat ulang' : 'Refresh'}
+                </Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.disclaimer}>
+            <Text style={[styles.disclaimer, { color: colors.muted }]}>
               {isId
                 ? 'Pertanyaan dari pelanggan yang diteruskan dari AI Concierge muncul di sini untuk dibalas langsung oleh Chef.'
                 : 'Customer questions escalated from the AI Concierge appear here for the Head Chef to answer.'}
@@ -214,98 +229,136 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
           </View>
 
           <View style={styles.chipRow}>
-            {['Pending', 'Answered', 'All'].map((f) => (
-              <TouchableOpacity
-                key={f}
-                style={[styles.filterPill, inqFilter === f && styles.filterPillActive]}
-                onPress={() => setInqFilter(f)}
-              >
-                <Text style={[styles.filterText, inqFilter === f && styles.filterTextActive]}>
-                  {f}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {['Pending', 'Answered', 'All'].map((f) => {
+              const active = inqFilter === f;
+              return (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    styles.filterPill,
+                    {
+                      backgroundColor: active ? colors.accent : colors.surface,
+                      borderColor: active ? colors.accent : colors.line,
+                    },
+                  ]}
+                  onPress={() => setInqFilter(f)}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      { color: active ? '#ffffff' : colors.ink },
+                    ]}
+                  >
+                    {f}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          {chefError ? <Text style={styles.errorText}>{chefError}</Text> : null}
+          {chefError ? <Text style={[styles.errorText, { color: colors.danger }]}>{chefError}</Text> : null}
 
           {loadingInq ? (
-            <ActivityIndicator size="large" color={COLORS.accent} style={{ marginTop: 20 }} />
+            <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 20 }} />
           ) : null}
 
           {!loadingInq && filteredInquiries.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.mutedText}>
+              <Text style={[styles.mutedText, { color: colors.muted }]}>
                 {isId ? 'Tidak ada pertanyaan di filter ini.' : 'No inquiries in this filter.'}
               </Text>
             </View>
           ) : null}
 
-          {filteredInquiries.map((inq) => (
-            <View key={inq.id} style={styles.chefCard}>
-              <View style={styles.inqHeader}>
-                <Text style={styles.chefCustomer}>
-                  {inq.customerName || 'Guest'}
-                  {inq.username ? ` (@${inq.username})` : ''}
-                </Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    inq.status === 'Answered' ? styles.badgeDone : styles.badgePending,
-                  ]}
-                >
-                  <Text style={styles.statusBadgeText}>{inq.status || 'Pending'}</Text>
-                </View>
-              </View>
-              <Text style={styles.inqDate}>
-                {inq.createdAt ? new Date(inq.createdAt).toLocaleString() : ''}
-              </Text>
-              <Text style={styles.chefQuestion}>{inq.question}</Text>
-
-              {inq.chefReply ? (
-                <View style={styles.replyBox}>
-                  <Text style={styles.replyLabel}>Chef Reply:</Text>
-                  <Text style={styles.replyBody}>{inq.chefReply}</Text>
-                </View>
-              ) : null}
-
-              <TextInput
-                style={styles.chefInput}
-                value={chefDrafts[inq.id] ?? ''}
-                onChangeText={(val) => setChefDrafts((prev) => ({ ...prev, [inq.id]: val }))}
-                placeholder={
-                  inq.chefReply
-                    ? isId
-                      ? 'Perbarui balasan Chef...'
-                      : 'Update Chef reply...'
-                    : isId
-                    ? 'Tulis balasan dari Kepala Koki...'
-                    : 'Write Head Chef reply...'
-                }
-                placeholderTextColor={COLORS.muted}
-                multiline
-              />
-              <TouchableOpacity
+          {filteredInquiries.map((inq) => {
+            const answered = inq.status === 'Answered';
+            return (
+              <View
+                key={inq.id}
                 style={[
-                  styles.chefSendBtn,
-                  (!(chefDrafts[inq.id] || '').trim() || replyingId === inq.id) &&
-                    styles.btnDisabled,
+                  styles.chefCard,
+                  { backgroundColor: colors.surface, borderColor: colors.line },
                 ]}
-                onPress={() => handleChefReply(inq)}
-                disabled={!(chefDrafts[inq.id] || '').trim() || replyingId === inq.id}
               >
-                <Text style={styles.sendBtnText}>
-                  {replyingId === inq.id
-                    ? isId
-                      ? 'Mengirim...'
-                      : 'Sending...'
-                    : isId
-                    ? 'Kirim Balasan Chef'
-                    : 'Send Chef Reply'}
+                <View style={styles.inqHeader}>
+                  <Text style={[styles.chefCustomer, { color: colors.ink }]}>
+                    {inq.customerName || 'Guest'}
+                    {inq.username ? ` (@${inq.username})` : ''}
+                  </Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: answered ? colors.successBg : colors.warningBg },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusBadgeText,
+                        { color: answered ? colors.success : colors.warning },
+                      ]}
+                    >
+                      {inq.status || 'Pending'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.inqDate, { color: colors.muted }]}>
+                  {inq.createdAt ? new Date(inq.createdAt).toLocaleString() : ''}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+                <Text style={[styles.chefQuestion, { color: colors.ink }]}>{inq.question}</Text>
+
+                {inq.chefReply ? (
+                  <View style={[styles.replyBox, { backgroundColor: colors.soft }]}>
+                    <Text style={[styles.replyLabel, { color: colors.accent }]}>Chef Reply:</Text>
+                    <Text style={[styles.replyBody, { color: colors.ink }]}>{inq.chefReply}</Text>
+                  </View>
+                ) : null}
+
+                <TextInput
+                  style={[
+                    styles.chefInput,
+                    {
+                      backgroundColor: colors.paper,
+                      borderColor: colors.line,
+                      color: colors.ink,
+                    },
+                  ]}
+                  value={chefDrafts[inq.id] ?? ''}
+                  onChangeText={(val) => setChefDrafts((prev) => ({ ...prev, [inq.id]: val }))}
+                  placeholder={
+                    inq.chefReply
+                      ? isId
+                        ? 'Perbarui balasan Chef...'
+                        : 'Update Chef reply...'
+                      : isId
+                      ? 'Tulis balasan dari Kepala Koki...'
+                      : 'Write Head Chef reply...'
+                  }
+                  placeholderTextColor={colors.muted}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.chefSendBtn,
+                    { backgroundColor: colors.accent },
+                    (!(chefDrafts[inq.id] || '').trim() || replyingId === inq.id) &&
+                      styles.btnDisabled,
+                  ]}
+                  onPress={() => handleChefReply(inq)}
+                  disabled={!(chefDrafts[inq.id] || '').trim() || replyingId === inq.id}
+                >
+                  <Text style={styles.sendBtnText}>
+                    {replyingId === inq.id
+                      ? isId
+                        ? 'Mengirim...'
+                        : 'Sending...'
+                      : isId
+                      ? 'Kirim Balasan Chef'
+                      : 'Send Chef Reply'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -324,17 +377,24 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
     >
       <ScrollView
         ref={scrollRef}
-        style={styles.flex}
+        style={[styles.flex, { backgroundColor: colors.paper }]}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={scrollToBottom}
       >
-        <View style={styles.headerCard}>
-          <Text style={styles.eyebrow}>AI CONCIERGE & LIVE CHEF</Text>
-          <Text style={styles.title}>
+        <View
+          style={[
+            styles.headerCard,
+            { backgroundColor: colors.surface, borderColor: colors.line },
+          ]}
+        >
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>
+            AI CONCIERGE & LIVE CHEF
+          </Text>
+          <Text style={[styles.title, { color: colors.ink }]}>
             {isId ? 'Tanya AI & Kepala Koki' : 'Ask AI & Head Chef'}
           </Text>
-          <Text style={styles.disclaimer}>
+          <Text style={[styles.disclaimer, { color: colors.muted }]}>
             {isId
               ? 'Jawaban AI dibuat otomatis dari data menu & ulasan. Pertanyaan khusus dapat diteruskan ke Chef.'
               : 'AI replies are generated automatically from menu & reviews. Special requests can be escalated to our Chef.'}
@@ -345,11 +405,14 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
           {quickChips.map((chip) => (
             <TouchableOpacity
               key={chip}
-              style={styles.chip}
+              style={[
+                styles.chip,
+                { backgroundColor: colors.soft, borderColor: colors.line },
+              ]}
               onPress={() => sendMessage(chip)}
               disabled={sending}
             >
-              <Text style={styles.chipText}>{chip}</Text>
+              <Text style={[styles.chipText, { color: colors.ink }]}>{chip}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -359,25 +422,53 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
           return (
             <View
               key={idx}
-              style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}
+              style={[
+                styles.bubble,
+                isUser
+                  ? { alignSelf: 'flex-end', backgroundColor: colors.accent }
+                  : {
+                      alignSelf: 'flex-start',
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.line,
+                    },
+              ]}
             >
-              <Text style={[styles.bubbleRole, isUser && styles.userBubbleRole]}>
+              <Text
+                style={[
+                  styles.bubbleRole,
+                  { color: isUser ? '#ffedd5' : colors.accent },
+                ]}
+              >
                 {isUser ? (isId ? 'Anda' : 'You') : 'AI Concierge'}
               </Text>
-              <Text style={[styles.bubbleText, isUser && styles.userBubbleText]}>
+              <Text
+                style={[
+                  styles.bubbleText,
+                  { color: isUser ? '#ffffff' : colors.ink },
+                ]}
+              >
                 {msg.text}
               </Text>
 
               {Array.isArray(msg.dishes) && msg.dishes.length > 0 ? (
                 <View style={styles.dishList}>
                   {msg.dishes.map((dish) => (
-                    <View key={dish.id} style={styles.dishCard}>
+                    <View
+                      key={dish.id}
+                      style={[
+                        styles.dishCard,
+                        { backgroundColor: colors.paper, borderColor: colors.line },
+                      ]}
+                    >
                       <View style={{ flex: 1, paddingRight: 8 }}>
-                        <Text style={styles.dishName}>{dish.name}</Text>
-                        <Text style={styles.dishPrice}>{formatRupiah(dish.price)}</Text>
+                        <Text style={[styles.dishName, { color: colors.ink }]}>{dish.name}</Text>
+                        <Text style={[styles.dishPrice, { color: colors.accent }]}>
+                          {formatRupiah(dish.price)}
+                        </Text>
                       </View>
                       <TouchableOpacity
-                        style={styles.addBtn}
+                        style={[styles.addBtn, { backgroundColor: colors.accent }]}
                         onPress={() => onAddToCart(dish)}
                       >
                         <Text style={styles.addBtnText}>+ {isId ? 'Tambah' : 'Add'}</Text>
@@ -389,11 +480,22 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
 
               {!isUser && idx > 0 ? (
                 <TouchableOpacity
-                  style={[styles.escalateBtn, msg.escalated && styles.escalatedDone]}
+                  style={[
+                    styles.escalateBtn,
+                    {
+                      backgroundColor: msg.escalated ? colors.successBg : colors.soft,
+                      borderColor: msg.escalated ? colors.success : colors.line,
+                    },
+                  ]}
                   onPress={() => handleEscalate(msg, idx)}
                   disabled={msg.escalated || escalatingIdx === idx}
                 >
-                  <Text style={styles.escalateText}>
+                  <Text
+                    style={[
+                      styles.escalateText,
+                      { color: msg.escalated ? colors.success : colors.ink },
+                    ]}
+                  >
                     {msg.escalated
                       ? isId
                         ? 'Terkirim ke Chef'
@@ -414,34 +516,45 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
 
         {sending ? (
           <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={COLORS.accent} />
-            <Text style={styles.mutedText}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={[styles.mutedText, { color: colors.muted }]}>
               {isId ? 'AI sedang mengetik...' : 'AI is thinking...'}
             </Text>
           </View>
         ) : null}
 
         {token ? (
-          <View style={styles.inqSection}>
+          <View
+            style={[
+              styles.inqSection,
+              { backgroundColor: colors.surface, borderColor: colors.line },
+            ]}
+          >
             <View style={styles.inqHeader}>
-              <Text style={styles.inqTitle}>
+              <Text style={[styles.inqTitle, { color: colors.ink }]}>
                 {isId ? 'Balasan Langsung dari Koki' : 'Live Chef Replies'}
               </Text>
               <TouchableOpacity style={styles.inqRefresh} onPress={loadInquiries}>
-                <Text style={styles.inqRefreshText}>
+                <Text style={[styles.inqRefreshText, { color: colors.accent }]}>
                   {loadingInq ? '...' : isId ? 'Muat ulang' : 'Refresh'}
                 </Text>
               </TouchableOpacity>
             </View>
             {inquiries.length === 0 ? (
-              <Text style={styles.mutedText}>
+              <Text style={[styles.mutedText, { color: colors.muted }]}>
                 {isId ? 'Belum ada pertanyaan yang diteruskan.' : 'No escalated questions yet.'}
               </Text>
             ) : (
               inquiries.slice(0, 5).map((inq) => (
-                <View key={inq.id} style={styles.inqCard}>
-                  <Text style={styles.inqQ}>Q: {inq.question}</Text>
-                  <Text style={styles.inqA}>
+                <View
+                  key={inq.id}
+                  style={[
+                    styles.inqCard,
+                    { backgroundColor: colors.paper, borderColor: colors.line },
+                  ]}
+                >
+                  <Text style={[styles.inqQ, { color: colors.ink }]}>Q: {inq.question}</Text>
+                  <Text style={[styles.inqA, { color: colors.muted }]}>
                     {inq.chefReply
                       ? `Chef: ${inq.chefReply}`
                       : isId
@@ -455,19 +568,35 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
         ) : null}
       </ScrollView>
 
-      <View style={styles.inputBar}>
+      <View
+        style={[
+          styles.inputBar,
+          { backgroundColor: colors.surface, borderTopColor: colors.line },
+        ]}
+      >
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.paper,
+              borderColor: colors.line,
+              color: colors.ink,
+            },
+          ]}
           value={input}
           onChangeText={setInput}
           onFocus={scrollToBottom}
           placeholder={isId ? 'Tanya tentang menu...' : 'Ask about our menu...'}
-          placeholderTextColor={COLORS.muted}
+          placeholderTextColor={colors.muted}
           returnKeyType="send"
           onSubmitEditing={() => sendMessage()}
         />
         <TouchableOpacity
-          style={[styles.sendBtn, (!input.trim() || sending) && styles.btnDisabled]}
+          style={[
+            styles.sendBtn,
+            { backgroundColor: colors.accent },
+            (!input.trim() || sending) && styles.btnDisabled,
+          ]}
           onPress={() => sendMessage()}
           disabled={!input.trim() || sending}
         >
@@ -479,126 +608,91 @@ export default function AiScreen({ token, user, lang, onAddToCart, colors: propC
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: COLORS.paper },
+  flex: { flex: 1 },
   content: { padding: 16, paddingBottom: 24 },
   headerCard: {
-    backgroundColor: COLORS.surface,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.line,
     marginBottom: 12,
   },
-  eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: COLORS.accent },
-  title: { fontSize: 22, fontWeight: '700', color: COLORS.ink, marginTop: 2 },
-  disclaimer: { fontSize: 12, color: COLORS.muted, marginTop: 4, lineHeight: 17 },
+  eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2 },
+  title: { fontSize: 22, fontWeight: '700', marginTop: 2 },
+  disclaimer: { fontSize: 12, marginTop: 4, lineHeight: 17 },
   refreshBtn: {
     minHeight: 40,
     paddingHorizontal: 12,
     justifyContent: 'center',
     borderRadius: 10,
-    backgroundColor: COLORS.soft,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  refreshBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.ink },
+  refreshBtnText: { fontSize: 12, fontWeight: '700' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   chip: {
     minHeight: 40,
     paddingHorizontal: 12,
     justifyContent: 'center',
     borderRadius: 999,
-    backgroundColor: COLORS.soft,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  chipText: { fontSize: 12, fontWeight: '600', color: COLORS.ink },
+  chipText: { fontSize: 12, fontWeight: '600' },
   filterPill: {
     minHeight: 40,
     paddingHorizontal: 14,
     justifyContent: 'center',
     borderRadius: 999,
-    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  filterPillActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
-  filterText: { fontSize: 13, fontWeight: '600', color: COLORS.ink },
-  filterTextActive: { color: '#fff' },
+  filterText: { fontSize: 13, fontWeight: '600' },
   emptyBox: { paddingVertical: 32, alignItems: 'center' },
-  errorText: { color: COLORS.danger, fontSize: 13, marginBottom: 10 },
+  errorText: { fontSize: 13, marginBottom: 10 },
   chefCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  chefCustomer: { fontSize: 14, fontWeight: '700', color: COLORS.ink, flex: 1, paddingRight: 8 },
+  chefCustomer: { fontSize: 14, fontWeight: '700', flex: 1, paddingRight: 8 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  badgePending: { backgroundColor: COLORS.warningBg },
-  badgeDone: { backgroundColor: COLORS.successBg },
-  statusBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.ink },
-  inqDate: { fontSize: 11, color: COLORS.muted, marginTop: 2, marginBottom: 8 },
-  chefQuestion: { fontSize: 14, color: COLORS.ink, fontWeight: '600', marginBottom: 10 },
-  replyBox: {
-    backgroundColor: COLORS.soft,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
-  },
-  replyLabel: { fontSize: 11, fontWeight: '700', color: COLORS.accent, marginBottom: 2 },
-  replyBody: { fontSize: 13, color: COLORS.ink },
+  statusBadgeText: { fontSize: 11, fontWeight: '700' },
+  inqDate: { fontSize: 11, marginTop: 2, marginBottom: 8 },
+  chefQuestion: { fontSize: 14, fontWeight: '600', marginBottom: 10 },
+  replyBox: { borderRadius: 10, padding: 10, marginBottom: 10 },
+  replyLabel: { fontSize: 11, fontWeight: '700', marginBottom: 2 },
+  replyBody: { fontSize: 13 },
   chefInput: {
     minHeight: 68,
-    backgroundColor: COLORS.paper,
     borderWidth: 1,
-    borderColor: COLORS.line,
     borderRadius: 12,
     padding: 10,
     fontSize: 13,
-    color: COLORS.ink,
     marginBottom: 8,
     textAlignVertical: 'top',
   },
   chefSendBtn: {
     minHeight: 44,
     borderRadius: 10,
-    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   bubble: { borderRadius: 16, padding: 14, marginBottom: 12, maxWidth: '92%' },
-  aiBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  userBubble: { alignSelf: 'flex-end', backgroundColor: COLORS.accent },
-  bubbleRole: { fontSize: 11, fontWeight: '700', color: COLORS.accent, marginBottom: 4 },
-  userBubbleRole: { color: '#ffedd5' },
-  bubbleText: { fontSize: 14, color: COLORS.ink, lineHeight: 20 },
-  userBubbleText: { color: '#fff' },
+  bubbleRole: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  bubbleText: { fontSize: 14, lineHeight: 20 },
   dishList: { marginTop: 10, gap: 8 },
   dishCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.paper,
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  dishName: { fontSize: 14, fontWeight: '700', color: COLORS.ink },
-  dishPrice: { fontSize: 12, color: COLORS.accent, fontWeight: '600', marginTop: 2 },
+  dishName: { fontSize: 14, fontWeight: '700' },
+  dishPrice: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   addBtn: {
     minHeight: 44,
     paddingHorizontal: 14,
     justifyContent: 'center',
     borderRadius: 10,
-    backgroundColor: COLORS.accent,
   },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   escalateBtn: {
@@ -608,21 +702,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    backgroundColor: COLORS.soft,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  escalatedDone: { backgroundColor: COLORS.successBg, borderColor: COLORS.success },
-  escalateText: { fontSize: 12, fontWeight: '700', color: COLORS.ink },
+  escalateText: { fontSize: 12, fontWeight: '700' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  mutedText: { fontSize: 13, color: COLORS.muted },
+  mutedText: { fontSize: 13 },
   inqSection: {
     marginTop: 12,
-    backgroundColor: COLORS.surface,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
   inqHeader: {
     flexDirection: 'row',
@@ -630,43 +719,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  inqTitle: { fontSize: 15, fontWeight: '700', color: COLORS.ink },
+  inqTitle: { fontSize: 15, fontWeight: '700' },
   inqRefresh: { minHeight: 40, paddingHorizontal: 10, justifyContent: 'center' },
-  inqRefreshText: { color: COLORS.accent, fontWeight: '700', fontSize: 13 },
+  inqRefreshText: { fontWeight: '700', fontSize: 13 },
   inqCard: {
-    backgroundColor: COLORS.paper,
     borderRadius: 10,
     padding: 10,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  inqQ: { fontSize: 13, fontWeight: '700', color: COLORS.ink },
-  inqA: { fontSize: 13, color: COLORS.muted, marginTop: 4 },
+  inqQ: { fontSize: 13, fontWeight: '700' },
+  inqA: { fontSize: 13, marginTop: 4 },
   inputBar: {
     flexDirection: 'row',
     padding: 12,
     gap: 8,
-    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: COLORS.line,
   },
   input: {
     flex: 1,
     minHeight: 46,
-    backgroundColor: COLORS.paper,
     borderRadius: 12,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: COLORS.line,
-    color: COLORS.ink,
     fontSize: 14,
   },
   sendBtn: {
     minHeight: 46,
     paddingHorizontal: 18,
     borderRadius: 12,
-    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
