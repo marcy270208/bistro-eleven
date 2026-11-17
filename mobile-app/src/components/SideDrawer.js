@@ -1,0 +1,391 @@
+import React, { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../theme';
+
+const DRAWER_WIDTH = Math.min(Dimensions.get('window').width * 0.8, 320);
+
+export default function SideDrawer({
+  visible,
+  onClose,
+  activeTab,
+  onSelectTab,
+  onOpenCart,
+  onToggleLang,
+  onLogout,
+  user,
+  token,
+  lang,
+  cartCount,
+}) {
+  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const isId = lang === 'id';
+  const isAdmin = user?.role === 'administrator';
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      slideAnim.setValue(-DRAWER_WIDTH);
+      fadeAnim.setValue(0);
+    }
+  }, [visible, slideAnim, fadeAnim]);
+
+  const handleClose = (after) => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: -DRAWER_WIDTH,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onClose();
+      if (typeof after === 'function') after();
+    });
+  };
+
+  const navItems = [
+    {
+      key: 'menu',
+      icon: 'restaurant-outline',
+      label: 'Menu',
+      onPress: () => handleClose(() => onSelectTab('menu')),
+    },
+    {
+      key: 'orders',
+      icon: 'receipt-outline',
+      label: isAdmin
+        ? isId
+          ? 'Pesanan Pelanggan'
+          : 'Customer Orders'
+        : isId
+        ? 'Pesanan Saya'
+        : 'My Orders',
+      onPress: () => handleClose(() => onSelectTab('orders')),
+    },
+    {
+      key: 'reviews',
+      icon: 'star-outline',
+      label: isId ? 'Ulasan Pelanggan' : 'Reviews',
+      onPress: () => handleClose(() => onSelectTab('reviews')),
+    },
+    {
+      key: 'ai',
+      icon: isAdmin ? 'flame-outline' : 'sparkles-outline',
+      label: isAdmin
+        ? isId
+          ? 'Meja Koki'
+          : 'Kitchen Desk'
+        : isId
+        ? 'Tanya AI & Koki'
+        : 'AI & Head Chef',
+      onPress: () => handleClose(() => onSelectTab('ai')),
+    },
+    {
+      key: 'cart',
+      icon: 'cart-outline',
+      label: isId ? `Keranjang (${cartCount})` : `Cart (${cartCount})`,
+      onPress: () => handleClose(onOpenCart),
+    },
+    {
+      key: 'account',
+      icon: 'person-circle-outline',
+      label: token
+        ? isId
+          ? 'Pengaturan Akun'
+          : 'Account Settings'
+        : isId
+        ? 'Masuk / Daftar'
+        : 'Sign In / Register',
+      onPress: () => handleClose(() => onSelectTab('account')),
+    },
+  ];
+
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={() => handleClose()}>
+      <View style={styles.overlay}>
+        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => handleClose()} />
+        </Animated.View>
+
+        <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }] }]}>
+          <SafeAreaView style={styles.safeDrawer} edges={['top', 'bottom']}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.brandRow}>
+                <View style={styles.logoBadge}>
+                  <Text style={styles.logoLetter}>B</Text>
+                </View>
+                <Text style={styles.brandText}>Bistro Eleven</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => handleClose()}
+                accessibilityLabel="Close menu"
+              >
+                <Ionicons name="close" size={24} color="#fff8f0" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Profile Summary */}
+            <TouchableOpacity
+              style={styles.profileBox}
+              onPress={() => handleClose(() => onSelectTab('account'))}
+              activeOpacity={0.8}
+            >
+              {user?.photo ? (
+                <Image source={{ uri: user.photo }} style={styles.avatarImg} />
+              ) : (
+                <View style={styles.avatarCircle}>
+                  <Text style={styles.avatarInitial}>
+                    {(user?.name || user?.username || 'B').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.profileInfo}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.profileName} numberOfLines={1}>
+                    {user?.name || user?.username || (isId ? 'Tamu' : 'Guest')}
+                  </Text>
+                  {isAdmin ? (
+                    <View style={styles.adminChip}>
+                      <Text style={styles.adminChipText}>ADMIN</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.profileSub} numberOfLines={1}>
+                  {user?.email ||
+                    (user?.username
+                      ? `@${user.username}`
+                      : isId
+                      ? 'Ketuk untuk masuk'
+                      : 'Tap to sign in')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            {/* Menu Items */}
+            <ScrollView style={styles.navList} showsVerticalScrollIndicator={false}>
+              {navItems.map((item) => {
+                const active = activeTab === item.key;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[styles.navItem, active && styles.navItemActive]}
+                    onPress={item.onPress}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons
+                      name={item.icon}
+                      size={20}
+                      color={active ? '#ffffff' : '#f4e6d8'}
+                      style={styles.navIcon}
+                    />
+                    <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <View style={styles.dividerSmall} />
+
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={onToggleLang}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="globe-outline" size={20} color="#f4e6d8" style={styles.navIcon} />
+                <Text style={styles.navLabel}>
+                  {isId ? 'Bahasa: Indonesia (ID)' : 'Language: English (EN)'}
+                </Text>
+              </TouchableOpacity>
+
+              {token ? (
+                <TouchableOpacity
+                  style={styles.navItem}
+                  onPress={() => handleClose(onLogout)}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons
+                    name="log-out-outline"
+                    size={20}
+                    color="#fca5a5"
+                    style={styles.navIcon}
+                  />
+                  <Text style={[styles.navLabel, { color: '#fca5a5' }]}>
+                    {isId ? 'Keluar' : 'Sign Out'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </ScrollView>
+
+            {/* Warm Bistro Footer */}
+            <View style={styles.footerBanner}>
+              <Text style={styles.footerEyebrow}>BISTRO ELEVEN</Text>
+              <Text style={styles.footerTagline}>
+                {isId
+                  ? 'Tempat nyaman untuk sejuta cita rasa.'
+                  : 'A little place for a lot of flavor.'}
+              </Text>
+            </View>
+          </SafeAreaView>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: { flex: 1, flexDirection: 'row' },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(26, 15, 9, 0.55)',
+  },
+  drawer: {
+    width: DRAWER_WIDTH,
+    height: '100%',
+    backgroundColor: '#2d1a10',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 16,
+  },
+  safeDrawer: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 14,
+  },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: COLORS.paper,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoLetter: { fontSize: 18, fontWeight: '800', color: COLORS.accent },
+  brandText: { fontSize: 19, fontWeight: '800', color: '#fff8f0', letterSpacing: 0.3 },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    gap: 12,
+  },
+  avatarImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.accent,
+    borderWidth: 2,
+    borderColor: '#f4d3b8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  profileInfo: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  profileName: { fontSize: 15, fontWeight: '700', color: '#fff8f0', flexShrink: 1 },
+  adminChip: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  adminChipText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  profileSub: { fontSize: 12, color: '#cbb8a8', marginTop: 2 },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 248, 240, 0.14)',
+    marginHorizontal: 18,
+    marginVertical: 10,
+  },
+  dividerSmall: {
+    height: 1,
+    backgroundColor: 'rgba(255, 248, 240, 0.1)',
+    marginVertical: 8,
+    marginHorizontal: 8,
+  },
+  navList: { flex: 1, paddingHorizontal: 12 },
+  navItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 46,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  navItemActive: {
+    backgroundColor: COLORS.accent,
+  },
+  navIcon: { marginRight: 14 },
+  navLabel: { fontSize: 15, fontWeight: '600', color: '#f4e6d8' },
+  navLabelActive: { color: '#ffffff', fontWeight: '700' },
+  footerBanner: {
+    margin: 14,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#3f2518',
+    borderWidth: 1,
+    borderColor: 'rgba(207, 115, 62, 0.35)',
+  },
+  footerEyebrow: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    color: '#f29f6d',
+    marginBottom: 4,
+  },
+  footerTagline: { fontSize: 13, fontWeight: '600', color: '#fff8f0', lineHeight: 18 },
+});

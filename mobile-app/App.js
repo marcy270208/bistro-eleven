@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { api, setUnauthorizedHandler } from './src/lib/api';
 import { deleteToken, getLang, getToken, saveLang } from './src/lib/storage';
 import { COLORS } from './src/theme';
+import SideDrawer from './src/components/SideDrawer';
 import MenuScreen from './src/screens/MenuScreen';
 import DishDetailModal from './src/screens/DishDetailModal';
 import CartCheckoutModal from './src/screens/CartCheckoutModal';
@@ -27,6 +29,7 @@ export default function App() {
   const [cart, setCart] = useState([]); // [{ id, qty }]
   const [selectedDish, setSelectedDish] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isId = lang === 'id';
 
@@ -126,11 +129,20 @@ export default function App() {
         <StatusBar style="dark" />
 
         <View style={styles.topBar}>
-          <View>
-            <Text style={styles.brand}>BISTRO ELEVEN</Text>
-            <Text style={styles.subBrand}>
-              {user ? `${user.name || user.username}` : isId ? 'Tamu' : 'Guest'}
-            </Text>
+          <View style={styles.topLeft}>
+            <TouchableOpacity
+              style={styles.menuIconBtn}
+              onPress={() => setDrawerOpen(true)}
+              accessibilityLabel="Open navigation menu"
+            >
+              <Ionicons name="menu" size={24} color={COLORS.ink} />
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.brand}>BISTRO ELEVEN</Text>
+              <Text style={styles.subBrand}>
+                {user ? `${user.name || user.username}` : isId ? 'Tamu' : 'Guest'}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.topActions}>
@@ -248,6 +260,25 @@ export default function App() {
           }}
           isId={isId}
         />
+
+        <SideDrawer
+          visible={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          activeTab={tab}
+          onSelectTab={setTab}
+          onOpenCart={() => setCartOpen(true)}
+          onToggleLang={toggleLang}
+          onLogout={async () => {
+            await deleteToken();
+            setToken(null);
+            setUser(null);
+            setTab('account');
+          }}
+          user={user}
+          token={token}
+          lang={lang}
+          cartCount={cartCount}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -264,6 +295,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.line,
+  },
+  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  menuIconBtn: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: COLORS.soft,
   },
   brand: { fontSize: 16, fontWeight: '800', letterSpacing: 1, color: COLORS.ink },
   subBrand: { fontSize: 12, color: COLORS.muted, marginTop: 1 },
