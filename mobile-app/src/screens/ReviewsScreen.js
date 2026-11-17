@@ -15,7 +15,8 @@ import {
 import { api } from '../lib/api';
 import { COLORS } from '../theme';
 
-export default function ReviewsScreen({ token, user, lang, onGoLogin }) {
+export default function ReviewsScreen({ token, user, lang, onGoLogin, colors: propColors }) {
+  const colors = propColors || COLORS;
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,12 +125,12 @@ export default function ReviewsScreen({ token, user, lang, onGoLogin }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.paper }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
     >
       <ScrollView
-        style={styles.flex}
+        style={[styles.flex, { backgroundColor: colors.paper }]}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -141,10 +142,17 @@ export default function ReviewsScreen({ token, user, lang, onGoLogin }) {
         }
       >
         <Text style={styles.eyebrow}>{isId ? 'BUKU TAMU' : 'GUESTBOOK'}</Text>
-        <Text style={styles.title}>{isId ? 'Ulasan Pelanggan' : 'Customer Reviews'}</Text>
+        <Text style={[styles.title, { color: colors.ink }]}>
+          {isId ? 'Ulasan Pelanggan' : 'Customer Reviews'}
+        </Text>
 
-        <View style={styles.summaryCard}>
-          <Text style={styles.avgNumber}>{avgRating}</Text>
+        <View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: colors.surface, borderColor: colors.line },
+          ]}
+        >
+          <Text style={[styles.avgNumber, { color: colors.ink }]}>{avgRating}</Text>
           <View>
             <Text style={styles.stars}>{'★'.repeat(Math.round(Number(avgRating)))}</Text>
             <Text style={styles.mutedText}>
@@ -154,8 +162,13 @@ export default function ReviewsScreen({ token, user, lang, onGoLogin }) {
         </View>
 
         {!isAdmin ? (
-          <View style={styles.formCard}>
-            <Text style={styles.formTitle}>
+          <View
+            style={[
+              styles.formCard,
+              { backgroundColor: colors.surface, borderColor: colors.line },
+            ]}
+          >
+            <Text style={[styles.formTitle, { color: colors.ink }]}>
               {isId ? 'Bagikan pengalaman Anda' : 'Share your experience'}
             </Text>
 
@@ -265,15 +278,23 @@ export default function ReviewsScreen({ token, user, lang, onGoLogin }) {
         ) : null}
 
         {reviews.map((rev) => (
-          <View key={rev.id} style={styles.reviewCard}>
+          <View
+            key={rev.id}
+            style={[
+              styles.reviewCard,
+              { backgroundColor: colors.surface, borderColor: colors.line },
+            ]}
+          >
             <View style={styles.reviewTop}>
-              <Text style={styles.reviewerName}>{rev.name || 'Guest'}</Text>
+              <Text style={[styles.reviewerName, { color: colors.ink }]}>
+                {rev.name || 'Guest'}
+              </Text>
               <Text style={styles.stars}>{'★'.repeat(Number(rev.rating) || 5)}</Text>
             </View>
-            <Text style={styles.reviewDate}>
+            <Text style={[styles.reviewDate, { color: colors.muted }]}>
               {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString() : ''}
             </Text>
-            <Text style={styles.reviewBody}>{rev.text}</Text>
+            <Text style={[styles.reviewBody, { color: colors.ink }]}>{rev.text}</Text>
             {isAdmin ? (
               <TouchableOpacity
                 style={styles.deleteBtn}
@@ -300,7 +321,7 @@ export default function ReviewsScreen({ token, user, lang, onGoLogin }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.paper },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16, paddingBottom: 88 },
   eyebrow: {
     fontSize: 11,
     fontWeight: '700',

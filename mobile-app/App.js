@@ -4,8 +4,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api, setUnauthorizedHandler } from './src/lib/api';
-import { deleteToken, getLang, getToken, saveLang } from './src/lib/storage';
-import { COLORS } from './src/theme';
+import { deleteToken, getLang, getTheme, getToken, saveLang, saveTheme } from './src/lib/storage';
+import { getColors } from './src/theme';
 import SideDrawer from './src/components/SideDrawer';
 import MenuScreen from './src/screens/MenuScreen';
 import DishDetailModal from './src/screens/DishDetailModal';
@@ -18,6 +18,7 @@ import AccountScreen from './src/screens/AccountScreen';
 export default function App() {
   const [tab, setTab] = useState('menu'); // 'menu' | 'orders' | 'reviews' | 'ai' | 'account'
   const [lang, setLang] = useState('en');
+  const [isDark, setIsDark] = useState(false);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
 
@@ -62,6 +63,8 @@ export default function App() {
       if (savedLang === 'en' || savedLang === 'id') {
         setLang(savedLang);
       }
+      const savedTheme = await getTheme();
+      setIsDark(savedTheme === 'dark');
       const savedToken = await getToken();
       if (savedToken) {
         try {
@@ -80,6 +83,15 @@ export default function App() {
     setLang(next);
     await saveLang(next);
   };
+
+  const toggleTheme = async () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    await saveTheme(nextDark ? 'dark' : 'light');
+  };
+
+  const colors = getColors(isDark);
+  const isAdmin = user?.role === 'administrator';
 
   const handleToggleFavorite = (dishId) => {
     setFavorites((prev) =>
@@ -113,31 +125,62 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <StatusBar style="dark" />
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.paper }]}
+        edges={['top', 'bottom']}
+      >
+        <StatusBar style={isDark ? 'light' : 'dark'} />
 
-        <View style={styles.topBar}>
+        <View
+          style={[
+            styles.topBar,
+            { backgroundColor: colors.surface, borderBottomColor: colors.line },
+          ]}
+        >
           <View style={styles.topLeft}>
             <TouchableOpacity
-              style={styles.menuIconBtn}
+              style={[styles.menuIconBtn, { backgroundColor: colors.soft }]}
               onPress={() => setDrawerOpen(true)}
               accessibilityLabel="Open navigation menu"
             >
-              <Ionicons name="menu" size={24} color={COLORS.ink} />
+              <Ionicons name="menu" size={24} color={colors.ink} />
             </TouchableOpacity>
             <View>
-              <Text style={styles.brand}>BISTRO ELEVEN</Text>
-              <Text style={styles.subBrand}>
+              <Text style={[styles.brand, { color: colors.ink }]}>BISTRO ELEVEN</Text>
+              <Text style={[styles.subBrand, { color: colors.muted }]}>
                 {user ? `${user.name || user.username}` : isId ? 'Tamu' : 'Guest'}
               </Text>
             </View>
           </View>
 
           <View style={styles.topActions}>
-            <TouchableOpacity style={styles.langBtn} onPress={toggleLang}>
-              <Text style={styles.langBtnText}>{lang.toUpperCase()}</Text>
+            <TouchableOpacity
+              style={[
+                styles.themeBtn,
+                { backgroundColor: colors.soft, borderColor: colors.line },
+              ]}
+              onPress={toggleTheme}
+              accessibilityLabel="Toggle dark or light mode"
+            >
+              <Ionicons
+                name={isDark ? 'sunny-outline' : 'moon-outline'}
+                size={18}
+                color={colors.ink}
+              />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cartBtn} onPress={() => setCartOpen(true)}>
+            <TouchableOpacity
+              style={[
+                styles.langBtn,
+                { backgroundColor: colors.soft, borderColor: colors.line },
+              ]}
+              onPress={toggleLang}
+            >
+              <Text style={[styles.langBtnText, { color: colors.ink }]}>{lang.toUpperCase()}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.cartBtn, { backgroundColor: colors.accent }]}
+              onPress={() => setCartOpen(true)}
+            >
               <Text style={styles.cartBtnText}>
                 {isId ? 'Keranjang' : 'Cart'} ({cartCount})
               </Text>
@@ -145,7 +188,7 @@ export default function App() {
           </View>
         </View>
 
-        <View style={styles.body}>
+        <View style={[styles.body, { backgroundColor: colors.paper }]}>
           {tab === 'menu' ? (
             <MenuScreen
               dishes={dishes}
@@ -157,6 +200,7 @@ export default function App() {
               favorites={favorites}
               onToggleFavorite={handleToggleFavorite}
               isId={isId}
+              colors={colors}
             />
           ) : null}
 
@@ -166,6 +210,7 @@ export default function App() {
               user={user}
               lang={lang}
               onGoLogin={() => setTab('account')}
+              colors={colors}
             />
           ) : null}
 
@@ -175,6 +220,7 @@ export default function App() {
               user={user}
               lang={lang}
               onGoLogin={() => setTab('account')}
+              colors={colors}
             />
           ) : null}
 
@@ -184,6 +230,7 @@ export default function App() {
               user={user}
               lang={lang}
               onAddToCart={handleAddToCart}
+              colors={colors}
             />
           ) : null}
 
@@ -201,7 +248,32 @@ export default function App() {
                 setUser(null);
               }}
               onUserUpdated={(updated) => setUser(updated)}
+              colors={colors}
             />
+          ) : null}
+
+          {tab !== 'ai' && !cartOpen && !drawerOpen && !selectedDish ? (
+            <TouchableOpacity
+              style={[styles.floatingAiBtn, { backgroundColor: colors.accent }]}
+              onPress={() => setTab('ai')}
+              activeOpacity={0.9}
+              accessibilityLabel="Open AI & Head Chef"
+            >
+              <Ionicons
+                name={isAdmin ? 'flame' : 'sparkles'}
+                size={18}
+                color="#ffffff"
+              />
+              <Text style={styles.floatingAiText}>
+                {isAdmin
+                  ? isId
+                    ? 'Meja Koki'
+                    : 'Chef Desk'
+                  : isId
+                  ? 'Tanya AI & Koki'
+                  : 'Ask AI & Chef'}
+              </Text>
+            </TouchableOpacity>
           ) : null}
         </View>
 
@@ -239,6 +311,7 @@ export default function App() {
           onSelectTab={setTab}
           onOpenCart={() => setCartOpen(true)}
           onToggleLang={toggleLang}
+          onToggleTheme={toggleTheme}
           onLogout={async () => {
             await deleteToken();
             setToken(null);
@@ -248,6 +321,7 @@ export default function App() {
           user={user}
           token={token}
           lang={lang}
+          isDark={isDark}
           cartCount={cartCount}
         />
       </SafeAreaView>
@@ -256,49 +330,67 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.paper },
+  safeArea: { flex: 1 },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.line,
   },
-  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, paddingRight: 6 },
   menuIconBtn: {
     width: 44,
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    backgroundColor: COLORS.soft,
   },
-  brand: { fontSize: 16, fontWeight: '800', letterSpacing: 1, color: COLORS.ink },
-  subBrand: { fontSize: 12, color: COLORS.muted, marginTop: 1 },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brand: { fontSize: 15, fontWeight: '800', letterSpacing: 0.8 },
+  subBrand: { fontSize: 12, marginTop: 1 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  themeBtn: {
+    width: 42,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+  },
   langBtn: {
     minHeight: 44,
-    minWidth: 44,
-    paddingHorizontal: 10,
+    minWidth: 42,
+    paddingHorizontal: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    backgroundColor: COLORS.soft,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
-  langBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.ink },
+  langBtnText: { fontSize: 12, fontWeight: '700' },
   cartBtn: {
     minHeight: 44,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    backgroundColor: COLORS.accent,
   },
-  cartBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  cartBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   body: { flex: 1 },
+  floatingAiBtn: {
+    position: 'absolute',
+    right: 16,
+    bottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 48,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  floatingAiText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
 });

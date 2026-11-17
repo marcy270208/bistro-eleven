@@ -22,7 +22,8 @@ function getStatusColors(status) {
   return { bg: COLORS.soft, fg: COLORS.ink };
 }
 
-export default function OrdersScreen({ token, user, lang, onGoLogin }) {
+export default function OrdersScreen({ token, user, lang, onGoLogin, colors: propColors }) {
+  const colors = propColors || COLORS;
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,14 +81,20 @@ export default function OrdersScreen({ token, user, lang, onGoLogin }) {
 
   if (!token) {
     return (
-      <View style={styles.centerBox}>
-        <Text style={styles.title}>{isId ? 'Pesanan Saya' : 'My Orders'}</Text>
-        <Text style={styles.mutedText}>
+      <View style={[styles.centerBox, { backgroundColor: colors.paper }]}>
+        <Text style={[styles.title, { color: colors.ink }]}>
+          {isId ? 'Pesanan Saya' : 'My Orders'}
+        </Text>
+        <Text style={[styles.mutedText, { color: colors.muted }]}>
           {isId
             ? 'Silakan masuk untuk melihat riwayat dan status pesanan Anda.'
             : 'Please sign in to view your order history and live status.'}
         </Text>
-        <TouchableOpacity style={styles.primaryBtn} onPress={onGoLogin} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
+          onPress={onGoLogin}
+          activeOpacity={0.8}
+        >
           <Text style={styles.primaryBtnText}>{isId ? 'Masuk Sekarang' : 'Sign In'}</Text>
         </TouchableOpacity>
       </View>
@@ -105,7 +112,7 @@ export default function OrdersScreen({ token, user, lang, onGoLogin }) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.paper }]}
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl
@@ -126,7 +133,7 @@ export default function OrdersScreen({ token, user, lang, onGoLogin }) {
               ? 'RIWAYAT PESANAN'
               : 'ORDER HISTORY'}
           </Text>
-          <Text style={styles.title}>
+          <Text style={[styles.title, { color: colors.ink }]}>
             {isAdmin
               ? isId
                 ? 'Pesanan Pelanggan'
@@ -198,10 +205,13 @@ export default function OrdersScreen({ token, user, lang, onGoLogin }) {
         const badge = getStatusColors(order.status);
         const items = Array.isArray(order.items) ? order.items : [];
         return (
-          <View key={order.id} style={styles.card}>
+          <View
+            key={order.id}
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.line }]}
+          >
             <View style={styles.cardTop}>
               <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={styles.orderCode}>{order.id}</Text>
+                <Text style={[styles.orderCode, { color: colors.ink }]}>{order.id}</Text>
                 {isAdmin && (order.customer || order.username) ? (
                   <Text style={styles.customerName}>
                     {order.customer || 'Guest'}
@@ -289,7 +299,7 @@ export default function OrdersScreen({ token, user, lang, onGoLogin }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.paper },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16, paddingBottom: 88 },
   centerBox: {
     flex: 1,
     backgroundColor: COLORS.paper,

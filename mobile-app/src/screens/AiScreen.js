@@ -14,7 +14,8 @@ import {
 import { api } from '../lib/api';
 import { COLORS, formatRupiah } from '../theme';
 
-export default function AiScreen({ token, user, lang, onAddToCart }) {
+export default function AiScreen({ token, user, lang, onAddToCart, colors: propColors }) {
+  const colors = propColors || COLORS;
   const isId = lang === 'id';
   const isAdmin = user?.role === 'administrator';
   const scrollRef = useRef(null);
@@ -177,7 +178,7 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
 
     return (
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={[styles.flex, { backgroundColor: colors.paper }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 95 : 85}
       >
@@ -317,7 +318,7 @@ export default function AiScreen({ token, user, lang, onAddToCart }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.paper }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 95 : 85}
     >

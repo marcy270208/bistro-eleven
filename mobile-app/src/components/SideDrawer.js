@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../theme';
+import { getColors } from '../theme';
 
 const DRAWER_WIDTH = Math.min(Dimensions.get('window').width * 0.8, 320);
 
@@ -24,10 +24,12 @@ export default function SideDrawer({
   onSelectTab,
   onOpenCart,
   onToggleLang,
+  onToggleTheme,
   onLogout,
   user,
   token,
   lang,
+  isDark,
   cartCount,
 }) {
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
@@ -35,6 +37,7 @@ export default function SideDrawer({
 
   const isId = lang === 'id';
   const isAdmin = user?.role === 'administrator';
+  const colors = getColors(isDark);
 
   useEffect(() => {
     if (visible) {
@@ -138,22 +141,31 @@ export default function SideDrawer({
           <Pressable style={StyleSheet.absoluteFill} onPress={() => handleClose()} />
         </Animated.View>
 
-        <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }] }]}>
+        <Animated.View
+          style={[
+            styles.drawer,
+            {
+              backgroundColor: colors.paper,
+              borderRightColor: colors.line,
+              transform: [{ translateX: slideAnim }],
+            },
+          ]}
+        >
           <SafeAreaView style={styles.safeDrawer} edges={['top', 'bottom']}>
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.brandRow}>
-                <View style={styles.logoBadge}>
+                <View style={[styles.logoBadge, { backgroundColor: colors.accent }]}>
                   <Text style={styles.logoLetter}>B</Text>
                 </View>
-                <Text style={styles.brandText}>Bistro Eleven</Text>
+                <Text style={[styles.brandText, { color: colors.ink }]}>Bistro Eleven</Text>
               </View>
               <TouchableOpacity
                 style={styles.closeBtn}
                 onPress={() => handleClose()}
                 accessibilityLabel="Close menu"
               >
-                <Ionicons name="close" size={24} color={COLORS.ink} />
+                <Ionicons name="close" size={24} color={colors.ink} />
               </TouchableOpacity>
             </View>
 
@@ -174,16 +186,16 @@ export default function SideDrawer({
               )}
               <View style={styles.profileInfo}>
                 <View style={styles.nameRow}>
-                  <Text style={styles.profileName} numberOfLines={1}>
+                  <Text style={[styles.profileName, { color: colors.ink }]} numberOfLines={1}>
                     {user?.name || user?.username || (isId ? 'Tamu' : 'Guest')}
                   </Text>
                   {isAdmin ? (
-                    <View style={styles.adminChip}>
+                    <View style={[styles.adminChip, { backgroundColor: colors.accent }]}>
                       <Text style={styles.adminChipText}>ADMIN</Text>
                     </View>
                   ) : null}
                 </View>
-                <Text style={styles.profileSub} numberOfLines={1}>
+                <Text style={[styles.profileSub, { color: colors.muted }]} numberOfLines={1}>
                   {user?.email ||
                     (user?.username
                       ? `@${user.username}`
@@ -194,7 +206,7 @@ export default function SideDrawer({
               </View>
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.line }]} />
 
             {/* Menu Items */}
             <ScrollView style={styles.navList} showsVerticalScrollIndicator={false}>
@@ -203,32 +215,60 @@ export default function SideDrawer({
                 return (
                   <TouchableOpacity
                     key={item.key}
-                    style={[styles.navItem, active && styles.navItemActive]}
+                    style={[styles.navItem, active && { backgroundColor: colors.accent }]}
                     onPress={item.onPress}
                     activeOpacity={0.75}
                   >
                     <Ionicons
                       name={item.icon}
                       size={20}
-                      color={active ? '#ffffff' : COLORS.ink}
+                      color={active ? '#ffffff' : colors.ink}
                       style={styles.navIcon}
                     />
-                    <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+                    <Text
+                      style={[
+                        styles.navLabel,
+                        { color: active ? '#ffffff' : colors.ink },
+                        active && styles.navLabelActive,
+                      ]}
+                    >
                       {item.label}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
 
-              <View style={styles.dividerSmall} />
+              <View style={[styles.dividerSmall, { backgroundColor: colors.line }]} />
+
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={onToggleTheme}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name={isDark ? 'sunny-outline' : 'moon-outline'}
+                  size={20}
+                  color={colors.ink}
+                  style={styles.navIcon}
+                />
+                <Text style={[styles.navLabel, { color: colors.ink }]}>
+                  {isId
+                    ? isDark
+                      ? 'Tema: Mode Gelap'
+                      : 'Tema: Mode Terang'
+                    : isDark
+                    ? 'Theme: Dark Mode'
+                    : 'Theme: Light Mode'}
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.navItem}
                 onPress={onToggleLang}
                 activeOpacity={0.75}
               >
-                <Ionicons name="globe-outline" size={20} color={COLORS.ink} style={styles.navIcon} />
-                <Text style={styles.navLabel}>
+                <Ionicons name="globe-outline" size={20} color={colors.ink} style={styles.navIcon} />
+                <Text style={[styles.navLabel, { color: colors.ink }]}>
                   {isId ? 'Bahasa: Indonesia (ID)' : 'Language: English (EN)'}
                 </Text>
               </TouchableOpacity>
@@ -242,10 +282,10 @@ export default function SideDrawer({
                   <Ionicons
                     name="log-out-outline"
                     size={20}
-                    color={COLORS.danger}
+                    color={colors.danger}
                     style={styles.navIcon}
                   />
-                  <Text style={[styles.navLabel, { color: COLORS.danger }]}>
+                  <Text style={[styles.navLabel, { color: colors.danger }]}>
                     {isId ? 'Keluar' : 'Sign Out'}
                   </Text>
                 </TouchableOpacity>
@@ -253,9 +293,14 @@ export default function SideDrawer({
             </ScrollView>
 
             {/* Warm Bistro Footer */}
-            <View style={styles.footerBanner}>
-              <Text style={styles.footerEyebrow}>BISTRO ELEVEN</Text>
-              <Text style={styles.footerTagline}>
+            <View
+              style={[
+                styles.footerBanner,
+                { backgroundColor: colors.soft, borderColor: colors.line },
+              ]}
+            >
+              <Text style={[styles.footerEyebrow, { color: colors.accent }]}>BISTRO ELEVEN</Text>
+              <Text style={[styles.footerTagline, { color: colors.ink }]}>
                 {isId
                   ? 'Tempat nyaman untuk sejuta cita rasa.'
                   : 'A little place for a lot of flavor.'}
@@ -277,9 +322,7 @@ const styles = StyleSheet.create({
   drawer: {
     width: DRAWER_WIDTH,
     height: '100%',
-    backgroundColor: COLORS.paper,
     borderRightWidth: 1,
-    borderRightColor: COLORS.line,
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 14,
@@ -299,12 +342,11 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoLetter: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  brandText: { fontSize: 19, fontWeight: '800', color: COLORS.ink, letterSpacing: 0.3 },
+  brandText: { fontSize: 19, fontWeight: '800', letterSpacing: 0.3 },
   closeBtn: {
     width: 44,
     height: 44,
@@ -323,13 +365,13 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: COLORS.accent,
+    borderColor: '#cf733e',
   },
   avatarCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.accent,
+    backgroundColor: '#cf733e',
     borderWidth: 2,
     borderColor: '#f4d3b8',
     justifyContent: 'center',
@@ -338,24 +380,21 @@ const styles = StyleSheet.create({
   avatarInitial: { color: '#fff', fontSize: 20, fontWeight: '800' },
   profileInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  profileName: { fontSize: 15, fontWeight: '700', color: COLORS.ink, flexShrink: 1 },
+  profileName: { fontSize: 15, fontWeight: '700', flexShrink: 1 },
   adminChip: {
-    backgroundColor: COLORS.accent,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
   adminChipText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  profileSub: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  profileSub: { fontSize: 12, marginTop: 2 },
   divider: {
     height: 1,
-    backgroundColor: COLORS.line,
     marginHorizontal: 18,
     marginVertical: 10,
   },
   dividerSmall: {
     height: 1,
-    backgroundColor: COLORS.line,
     marginVertical: 8,
     marginHorizontal: 8,
   },
@@ -368,26 +407,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 4,
   },
-  navItemActive: {
-    backgroundColor: COLORS.accent,
-  },
   navIcon: { marginRight: 14 },
-  navLabel: { fontSize: 15, fontWeight: '600', color: COLORS.ink },
+  navLabel: { fontSize: 15, fontWeight: '600' },
   navLabelActive: { color: '#ffffff', fontWeight: '700' },
   footerBanner: {
     margin: 14,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: COLORS.soft,
     borderWidth: 1,
-    borderColor: COLORS.line,
   },
   footerEyebrow: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.4,
-    color: COLORS.accent,
     marginBottom: 4,
   },
-  footerTagline: { fontSize: 13, fontWeight: '600', color: COLORS.ink, lineHeight: 18 },
+  footerTagline: { fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });

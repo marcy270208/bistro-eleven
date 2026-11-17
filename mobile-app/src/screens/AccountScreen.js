@@ -22,7 +22,9 @@ export default function AccountScreen({
   onAuthSuccess,
   onLogout,
   onUserUpdated,
+  colors: propColors,
 }) {
+  const colors = propColors || COLORS;
   const isId = lang === 'id';
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -232,7 +234,7 @@ export default function AccountScreen({
   if (!token) {
     return (
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={[styles.flex, { backgroundColor: colors.paper }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
       >
@@ -359,7 +361,7 @@ export default function AccountScreen({
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.paper }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
     >
@@ -487,7 +489,7 @@ export default function AccountScreen({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.paper },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16, paddingBottom: 88 },
   eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: COLORS.accent },
   title: { fontSize: 24, fontWeight: '700', color: COLORS.ink, marginTop: 2, marginBottom: 16 },
   tabRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },

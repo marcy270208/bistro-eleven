@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOKEN_KEY = 'bistro_jwt_token';
 const LANG_KEY = 'bistro_app_lang';
+const THEME_KEY = 'bistro_app_theme';
 
 // Sensitive auth JWT is stored in hardware-backed SecureStore (Keychain on iOS, Keystore on Android)
 export async function saveToken(token) {
@@ -25,4 +26,13 @@ export async function saveLang(lang) {
 export async function getLang() {
   const val = await AsyncStorage.getItem(LANG_KEY);
   return val === 'id' ? 'id' : 'en';
+}
+
+export async function saveTheme(theme) {
+  await AsyncStorage.setItem(THEME_KEY, theme);
+}
+
+export async function getTheme() {
+  const val = await AsyncStorage.getItem(THEME_KEY);
+  return val === 'dark' ? 'dark' : 'light';
 }

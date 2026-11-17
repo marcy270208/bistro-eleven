@@ -23,7 +23,9 @@ export default function MenuScreen({
   favorites,
   onToggleFavorite,
   isId,
+  colors: propColors,
 }) {
+  const colors = propColors || COLORS;
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'favorites' | 'budget'
 
@@ -65,19 +67,28 @@ export default function MenuScreen({
       }
       ListHeaderComponent={
         <View style={styles.headerBlock}>
-          <Text style={styles.eyebrow}>{isId ? 'DARI DAPUR KAMI' : 'FROM OUR KITCHEN'}</Text>
-          <Text style={styles.title}>{isId ? 'Menu Pilihan' : 'House Favorites'}</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>
+            {isId ? 'DARI DAPUR KAMI' : 'FROM OUR KITCHEN'}
+          </Text>
+          <Text style={[styles.title, { color: colors.ink }]}>
+            {isId ? 'Menu Pilihan' : 'House Favorites'}
+          </Text>
 
           {/* Search Row */}
           <View style={styles.searchRow}>
-            <View style={styles.searchWrap}>
-              <Ionicons name="search-outline" size={18} color={COLORS.muted} />
+            <View
+              style={[
+                styles.searchWrap,
+                { backgroundColor: colors.surface, borderColor: colors.line },
+              ]}
+            >
+              <Ionicons name="search-outline" size={18} color={colors.muted} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.ink }]}
                 value={search}
                 onChangeText={setSearch}
                 placeholder={isId ? 'Cari menu favoritmu...' : 'Search dishes, flavors...'}
-                placeholderTextColor={COLORS.muted}
+                placeholderTextColor={colors.muted}
               />
               {search ? (
                 <TouchableOpacity onPress={() => setSearch('')} style={styles.clearSearchBtn}>
@@ -192,21 +203,24 @@ export default function MenuScreen({
         const isFav = favorites.includes(item.id);
         return (
           <TouchableOpacity
-            style={styles.card}
+            style={[
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.line },
+            ]}
             activeOpacity={0.88}
             onPress={() => onSelectDish(item)}
           >
-            <View style={styles.thumbWrap}>
+            <View style={[styles.thumbWrap, { backgroundColor: colors.soft }]}>
               {item.image ? (
                 <Image source={{ uri: item.image }} style={styles.thumbImg} resizeMode="cover" />
               ) : (
-                <Ionicons name="fast-food-outline" size={30} color={COLORS.muted} />
+                <Ionicons name="fast-food-outline" size={30} color={colors.muted} />
               )}
             </View>
 
             <View style={styles.cardBody}>
               <View style={styles.cardTopRow}>
-                <Text style={styles.dishName} numberOfLines={1}>
+                <Text style={[styles.dishName, { color: colors.ink }]} numberOfLines={1}>
                   {item.name}
                 </Text>
                 <TouchableOpacity
@@ -217,19 +231,21 @@ export default function MenuScreen({
                   <Ionicons
                     name={isFav ? 'heart' : 'heart-outline'}
                     size={18}
-                    color={isFav ? COLORS.accent : COLORS.muted}
+                    color={isFav ? colors.accent : colors.muted}
                   />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.dishDesc} numberOfLines={2}>
+              <Text style={[styles.dishDesc, { color: colors.muted }]} numberOfLines={2}>
                 {item.description}
               </Text>
 
               <View style={styles.cardFooter}>
-                <Text style={styles.dishPrice}>{formatRupiah(item.price)}</Text>
+                <Text style={[styles.dishPrice, { color: colors.accent }]}>
+                  {formatRupiah(item.price)}
+                </Text>
                 <TouchableOpacity
-                  style={styles.addBtn}
+                  style={[styles.addBtn, { backgroundColor: colors.accent }]}
                   onPress={() => onAddToCart(item.id)}
                 >
                   <Text style={styles.addBtnText}>{isId ? '+ Tambah' : '+ Add'}</Text>
@@ -244,7 +260,7 @@ export default function MenuScreen({
 }
 
 const styles = StyleSheet.create({
-  listContent: { padding: 16, paddingBottom: 32 },
+  listContent: { padding: 16, paddingBottom: 88 },
   headerBlock: { marginBottom: 8 },
   eyebrow: {
     fontSize: 11,
