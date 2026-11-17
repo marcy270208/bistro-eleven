@@ -9,9 +9,9 @@ Repository: `https://github.com/marcy270208/bistro-eleven`
 - **Database**: Turso Cloud SQLite (shared across Web & Mobile)
 
 ## Team Ownership
-- **Marcy Priscilla Simanjuntak** — Frontend Architecture, UI/UX Polish, CI/CD & Documentation
-- **Margaret E. Sihombing** — Backend API, Role-based Access Control, Sales Excel Export & Mobile Fixes
-- **Vicencia Chasandra Imanuel** — Mobile App (Expo React Native), Profile Media & Review Moderation
+- **Marcy Priscilla Simanjuntak** — System Integration, Deployment & CI/CD (Vercel, Turso Cloud, GitHub Pages), AI Concierge & Full-Stack Features
+- **Margaret E. Sihombing** — Backend API, Role-based Access Control, Sales Excel Export & Web Dashboard
+- **Vicencia Chasandra Imanuel** — Mobile App (Expo React Native), Web UI/UX & Profile/Review Features
 
 ---
 
