@@ -134,8 +134,8 @@ export default function MenuScreen({
                   styles.heroOverlay,
                   {
                     backgroundColor: isDark
-                      ? 'rgba(23, 17, 13, 0.72)'
-                      : 'rgba(255, 248, 240, 0.76)',
+                      ? 'rgba(23, 17, 13, 0.62)'
+                      : 'rgba(255, 248, 240, 0.54)',
                   },
                 ]}
               >
