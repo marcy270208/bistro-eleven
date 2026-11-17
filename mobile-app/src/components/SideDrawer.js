@@ -4,6 +4,7 @@ import {
   Dimensions,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -165,10 +166,15 @@ export default function SideDrawer({
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.brandRow}>
-                <View style={[styles.logoBadge, { backgroundColor: colors.accent }]}>
-                  <Text style={styles.logoLetter}>B</Text>
+                <View
+                  style={[
+                    styles.logoBadge,
+                    { borderColor: colors.accent, backgroundColor: colors.paper },
+                  ]}
+                >
+                  <Text style={[styles.logoLetter, { color: colors.accent }]}>B</Text>
                 </View>
-                <Text style={[styles.brandText, { color: colors.ink }]}>Bistro Eleven</Text>
+                <Text style={[styles.brandText, { color: colors.ink }]}>BISTRO ELEVEN</Text>
               </View>
               <TouchableOpacity
                 style={styles.closeBtn}
@@ -351,12 +357,17 @@ const styles = StyleSheet.create({
   logoBadge: {
     width: 34,
     height: 34,
-    borderRadius: 10,
+    borderRadius: 17,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoLetter: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  brandText: { fontSize: 19, fontWeight: '800', letterSpacing: 0.3 },
+  logoLetter: {
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  brandText: { fontSize: 16, fontWeight: '800', letterSpacing: 0.8 },
   closeBtn: {
     width: 44,
     height: 44,

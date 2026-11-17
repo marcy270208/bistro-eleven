@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api, setUnauthorizedHandler } from './src/lib/api';
@@ -139,9 +139,14 @@ export default function App() {
             >
               <Ionicons name="menu" size={24} color={colors.ink} />
             </TouchableOpacity>
-            <View>
-              <Text style={[styles.brand, { color: colors.ink }]}>BISTRO ELEVEN</Text>
-              <Text style={[styles.subBrand, { color: colors.muted }]}>
+            <View style={[styles.brandCircle, { borderColor: colors.accent, backgroundColor: colors.paper }]}>
+              <Text style={[styles.brandLetter, { color: colors.accent }]}>B</Text>
+            </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={[styles.brand, { color: colors.ink }]} numberOfLines={1}>
+                BISTRO ELEVEN
+              </Text>
+              <Text style={[styles.subBrand, { color: colors.muted }]} numberOfLines={1}>
                 {user ? `${user.name || user.username}` : isId ? 'Tamu' : 'Guest'}
               </Text>
             </View>
@@ -353,7 +358,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 10,
   },
-  brand: { fontSize: 15, fontWeight: '800', letterSpacing: 0.8 },
+  brandCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandLetter: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  brand: { fontSize: 14, fontWeight: '800', letterSpacing: 0.8 },
   subBrand: { fontSize: 12, marginTop: 1 },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   themeBtn: {
