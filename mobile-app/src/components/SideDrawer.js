@@ -153,7 +153,7 @@ export default function SideDrawer({
                 onPress={() => handleClose()}
                 accessibilityLabel="Close menu"
               >
-                <Ionicons name="close" size={24} color="#fff8f0" />
+                <Ionicons name="close" size={24} color={COLORS.ink} />
               </TouchableOpacity>
             </View>
 
@@ -210,7 +210,7 @@ export default function SideDrawer({
                     <Ionicons
                       name={item.icon}
                       size={20}
-                      color={active ? '#ffffff' : '#f4e6d8'}
+                      color={active ? '#ffffff' : COLORS.ink}
                       style={styles.navIcon}
                     />
                     <Text style={[styles.navLabel, active && styles.navLabelActive]}>
@@ -227,7 +227,7 @@ export default function SideDrawer({
                 onPress={onToggleLang}
                 activeOpacity={0.75}
               >
-                <Ionicons name="globe-outline" size={20} color="#f4e6d8" style={styles.navIcon} />
+                <Ionicons name="globe-outline" size={20} color={COLORS.ink} style={styles.navIcon} />
                 <Text style={styles.navLabel}>
                   {isId ? 'Bahasa: Indonesia (ID)' : 'Language: English (EN)'}
                 </Text>
@@ -242,10 +242,10 @@ export default function SideDrawer({
                   <Ionicons
                     name="log-out-outline"
                     size={20}
-                    color="#fca5a5"
+                    color={COLORS.danger}
                     style={styles.navIcon}
                   />
-                  <Text style={[styles.navLabel, { color: '#fca5a5' }]}>
+                  <Text style={[styles.navLabel, { color: COLORS.danger }]}>
                     {isId ? 'Keluar' : 'Sign Out'}
                   </Text>
                 </TouchableOpacity>
@@ -277,9 +277,11 @@ const styles = StyleSheet.create({
   drawer: {
     width: DRAWER_WIDTH,
     height: '100%',
-    backgroundColor: '#2d1a10',
+    backgroundColor: COLORS.paper,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.line,
     shadowColor: '#000',
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.18,
     shadowRadius: 14,
     elevation: 16,
   },
@@ -297,12 +299,12 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: COLORS.paper,
+    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoLetter: { fontSize: 18, fontWeight: '800', color: COLORS.accent },
-  brandText: { fontSize: 19, fontWeight: '800', color: '#fff8f0', letterSpacing: 0.3 },
+  logoLetter: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
+  brandText: { fontSize: 19, fontWeight: '800', color: COLORS.ink, letterSpacing: 0.3 },
   closeBtn: {
     width: 44,
     height: 44,
@@ -336,7 +338,7 @@ const styles = StyleSheet.create({
   avatarInitial: { color: '#fff', fontSize: 20, fontWeight: '800' },
   profileInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  profileName: { fontSize: 15, fontWeight: '700', color: '#fff8f0', flexShrink: 1 },
+  profileName: { fontSize: 15, fontWeight: '700', color: COLORS.ink, flexShrink: 1 },
   adminChip: {
     backgroundColor: COLORS.accent,
     paddingHorizontal: 6,
@@ -344,16 +346,16 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   adminChipText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  profileSub: { fontSize: 12, color: '#cbb8a8', marginTop: 2 },
+  profileSub: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 248, 240, 0.14)',
+    backgroundColor: COLORS.line,
     marginHorizontal: 18,
     marginVertical: 10,
   },
   dividerSmall: {
     height: 1,
-    backgroundColor: 'rgba(255, 248, 240, 0.1)',
+    backgroundColor: COLORS.line,
     marginVertical: 8,
     marginHorizontal: 8,
   },
@@ -370,22 +372,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   navIcon: { marginRight: 14 },
-  navLabel: { fontSize: 15, fontWeight: '600', color: '#f4e6d8' },
+  navLabel: { fontSize: 15, fontWeight: '600', color: COLORS.ink },
   navLabelActive: { color: '#ffffff', fontWeight: '700' },
   footerBanner: {
     margin: 14,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: '#3f2518',
+    backgroundColor: COLORS.soft,
     borderWidth: 1,
-    borderColor: 'rgba(207, 115, 62, 0.35)',
+    borderColor: COLORS.line,
   },
   footerEyebrow: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.4,
-    color: '#f29f6d',
+    color: COLORS.accent,
     marginBottom: 4,
   },
-  footerTagline: { fontSize: 13, fontWeight: '600', color: '#fff8f0', lineHeight: 18 },
+  footerTagline: { fontSize: 13, fontWeight: '600', color: COLORS.ink, lineHeight: 18 },
 });

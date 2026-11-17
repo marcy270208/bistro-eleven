@@ -113,16 +113,6 @@ export default function App() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
-  const isAdmin = user?.role === 'administrator';
-
-  const tabs = [
-    { key: 'menu', label: 'Menu' },
-    { key: 'orders', label: isId ? 'Pesanan' : 'Orders' },
-    { key: 'reviews', label: isId ? 'Ulasan' : 'Reviews' },
-    { key: 'ai', label: isAdmin ? (isId ? 'Koki' : 'Chef') : 'AI' },
-    { key: 'account', label: isId ? 'Akun' : 'Account' },
-  ];
-
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -215,23 +205,6 @@ export default function App() {
               onUserUpdated={(updated) => setUser(updated)}
             />
           ) : null}
-        </View>
-
-        <View style={styles.tabBar}>
-          {tabs.map((item) => {
-            const active = tab === item.key;
-            return (
-              <TouchableOpacity
-                key={item.key}
-                style={[styles.tabItem, active && styles.tabItemActive]}
-                onPress={() => setTab(item.key)}
-              >
-                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
         </View>
 
         <DishDetailModal
@@ -330,23 +303,4 @@ const styles = StyleSheet.create({
   },
   cartBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
   body: { flex: 1 },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    gap: 4,
-  },
-  tabItem: {
-    flex: 1,
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  tabItemActive: { backgroundColor: COLORS.soft },
-  tabLabel: { fontSize: 12, fontWeight: '600', color: COLORS.muted },
-  tabLabelActive: { color: COLORS.accent, fontWeight: '800' },
 });
